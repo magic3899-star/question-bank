@@ -1,0 +1,27 @@
+# ── 문제 데이터는 절대 저장소에 올리지 않는다 ──
+문제 디비/
+규칙.docx
+*.docx
+*.hwp
+*.hwpx
+*.xlsx
+*.pdf
+*.db
+*.sqlite
+*.sqlite3
+userdata/
+backups/
+!tests/fixtures/**/*.fixture.json
+
+# ── 빌드/의존성 ──
+node_modules/
+.npm-cache/
+dist/
+out/
+release/
+.vite/
+coverage/
+*.log
+.env
+.env.*
+.tmp-realcheck/

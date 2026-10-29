@@ -1,0 +1,36 @@
+{
+  "name": "question-bank",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint:deps": "node .dependency-cruiser-runner.cjs --config .dependency-cruiser.cjs src tests"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.12",
+    "better-sqlite3": "^12.11.1",
+    "docx": "^9.15.0",
+    "exceljs": "^4.4.0",
+    "jszip": "^3.10.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.20.5",
+    "dependency-cruiser": "^16.10.4",
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.7"
+  },
+  "engines": {
+    "node": ">=22.15.0"
+  },
+  "description": "출판사 모의고사 문제은행",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
