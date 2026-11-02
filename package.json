@@ -1,6 +1,6 @@
 {
   "name": "question-bank",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "test": "vitest run",
@@ -8,6 +8,7 @@
     "lint:deps": "node .dependency-cruiser-runner.cjs --config .dependency-cruiser.cjs src tests",
     "test:fast": "vitest run --exclude \"tests/e2e/**\" --exclude \"tests/invariants/**\"",
     "dist": "npm run build && electron-builder --win nsis --publish never",
+    "release": "node scripts/release.cjs",
     "build": "electron-vite build",
     "capture": "node scripts/capture.cjs",
     "app": "electron-vite preview",

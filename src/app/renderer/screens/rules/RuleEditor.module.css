@@ -43,9 +43,14 @@
 }
 .slotRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 140px auto;
+  grid-template-columns: 140px auto;
+  justify-content: space-between;
   gap: var(--space-3);
   align-items: end;
+}
+/* 편집 영역이 좁아도 슬롯 이름이 잘리지 않게 한 줄을 통째로 쓴다. */
+.slotRow > :first-child {
+  grid-column: 1 / -1;
 }
 .slotButtons {
   display: flex;
