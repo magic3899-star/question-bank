@@ -11,3 +11,6 @@ export { Skeleton } from './Skeleton';
 export { Toast } from './Toast';
 export { Dialog } from './Dialog';
 export { Tabs } from './Tabs';
+
+export { QuestionPreview } from './QuestionPreview';
+export { PreviewFrame } from './PreviewFrame';

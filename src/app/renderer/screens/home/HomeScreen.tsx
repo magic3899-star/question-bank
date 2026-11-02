@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  CircleCheck,
   ArrowRight,
   BookOpen,
   ChevronRight,
@@ -69,20 +70,27 @@ export function HomeScreen() {
       )}
       <div className={styles['home-columns']}>
         <Card title="주의 필요">
-          <div className={styles['notice']}>
-            <AlertTriangle aria-hidden="true" />
+          <div className={`${styles['notice']} ${stats.warnings.withoutObjective ? '' : styles.healthy}`}>
+            {stats.warnings.withoutObjective ? (
+              <AlertTriangle aria-hidden="true" />
+            ) : (
+              <CircleCheck aria-hidden="true" />
+            )}
             <div>
-              <strong>학습목표 없는 문제 {stats.warnings.withoutObjective}개</strong>
-              <p>출제하려면 학습목표를 지정해야 합니다.</p>
+              <strong>
+                {stats.warnings.withoutObjective
+                  ? `학습목표 없는 문제 ${stats.warnings.withoutObjective}개`
+                  : '모든 문제에 학습목표가 있습니다'}
+              </strong>
+              {!!stats.warnings.withoutObjective && <p>출제하려면 학습목표를 지정해야 합니다.</p>}
             </div>
           </div>
-          <Button
-            disabledReason={stats.warnings.withoutObjective ? undefined : '학습목표 없는 문제가 없습니다.'}
-            onClick={() => navigate('bank?withoutObjective=1')}
-          >
-            문제 확인
-            <ArrowRight />
-          </Button>
+          {!!stats.warnings.withoutObjective && (
+            <Button onClick={() => navigate('bank?withoutObjective=1')}>
+              문제 확인
+              <ArrowRight />
+            </Button>
+          )}
         </Card>
         <Card title="최근 시험">
           <EmptyState

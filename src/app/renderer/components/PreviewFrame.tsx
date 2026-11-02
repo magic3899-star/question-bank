@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { QuestionDetail } from '../../../shared/index';
-import { renderQuestionHtml } from '../../../../modules/render-html/index';
+import type { QuestionDetail } from '../../shared/index';
+import { renderQuestionHtml } from '../../../modules/render-html/index';
 import { PreviewPlaceholder } from './PreviewPlaceholder';
-import { afterTwoFrames } from '../../lib/index';
+import { afterTwoFrames } from '../lib/index';
 import styles from './PreviewFrame.module.css';
 
 export function PreviewFrame({
@@ -13,9 +13,13 @@ export function PreviewFrame({
   onReady: (detail: QuestionDetail) => void;
 }) {
   const html = useMemo(() => renderQuestionHtml(detail.question, detail.assets), [detail]);
-  const [painted, setPainted] = useState(false);
+  const [paintedHtml, setPaintedHtml] = useState<string>();
+  const painted = paintedHtml === html;
   const cancelRef = useRef<() => void>(() => {});
-  useEffect(() => () => cancelRef.current(), []);
+  useEffect(() => () => cancelRef.current(), [html]);
+  useEffect(() => {
+    if (painted) onReady(detail);
+  }, [painted, detail, onReady]);
   return (
     <div className={styles.frame} aria-busy={!painted}>
       {!painted && (
@@ -32,8 +36,7 @@ export function PreviewFrame({
           cancelRef.current();
           cancelRef.current = afterTwoFrames(
             () => {
-              setPainted(true);
-              onReady(detail);
+              setPaintedHtml(html);
             },
             requestAnimationFrame,
             cancelAnimationFrame,

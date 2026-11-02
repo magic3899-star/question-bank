@@ -22,6 +22,7 @@ Windows 설치형(Electron), 개인 PC 단독 사용, 문제 데이터는 PC 안
 | registry | `src/core/registry` | 플러그인 등록/조회 | O |
 | storage | `src/modules/storage` | SQLite 저장소, 마이그레이션 | 아니오(DB) |
 | importers/* | `src/modules/importers/<id>` | 파일 → ImportDraft | O |
+| layout-parser | `src/modules/layout-parser` | 형식 중립 LayoutBlock 열 + 프로파일·옵션 → 문제 초안·진단·사용 자산 ID | O |
 | validators/* | `src/modules/validators/<id>` | 문제 → Diagnostic[] | O |
 | rules | `src/modules/rules` | RuleSet 스키마 검증, 기본 프리셋 | O |
 | constraints/* | `src/modules/constraints/<id>` | 제약 플러그인 | O |
@@ -43,7 +44,8 @@ contracts            → (없음)
 content-model, rng   → contracts
 registry             → contracts
 storage              → contracts, content-model
-importers/*          → contracts, content-model
+layout-parser        → contracts, content-model, objective-code
+importers/*          → contracts, content-model, layout-parser
 validators/*         → contracts, content-model
 objective-code       → contracts
 rules                → contracts, objective-code
@@ -66,6 +68,7 @@ app/renderer         → app/shared, contracts, content-model, render-html, obje
 - 같은 계층의 모듈끼리(예: `exporters/pdf` ↔ `exporters/docx`)도 서로 import 하지 않는다.
 - `exporters/*` 는 storage 를 절대 import 하지 않는다 → DB 가 바뀌어도 출력은 영향 없음.
 - UI(renderer)는 `app` 이 노출하는 IPC API 로만 로직을 호출한다.
+- 문제 해석 규칙·프로파일은 `layout-parser/index.ts`가 공개한다. 형식별 importer는 문서 고유 변환 후 이를 호출한다. `importers/docx`의 기존 프로파일 export는 호환을 위해 유지한다.
 
 ## 4. 데이터 흐름
 
@@ -128,6 +131,7 @@ src/app/renderer/          React UI. 미리보기는 render-html 을 직접 사�
 - 데이터 위치: `%APPDATA%/QuestionBank/` (`data/bank.sqlite`, `settings.json`, `backups/`). 개발·검수 시 `QB_DATA_DIR` 로 다른 폴더 지정.
 - **SQLite 네이티브 모듈**: better-sqlite3 13 은 Node-API(N-API) 바이너리(`prebuilds/win32-x64.node`)를 패키지에 포함한다. Node-API 는 ABI 가 안정적이라 **테스트(Node 22)와 앱(Electron 45, 내장 Node 24)이 같은 파일**을 쓴다(2026-11-02 실제 확인). 재빌드 불필요: electron-builder `npmRebuild: false`, asar 에서는 better-sqlite3 를 풀어 둔다(`asarUnpack`). electron-vite 는 의존성을 번들하지 않고 외부화한다.
 - 검수용 캡처 모드: `QB_CAPTURE_DIR` 가 지정되면 모든 화면을 차례로 열어 PNG 로 저장하고 종료(디자인 검수 자동화).
+- 가져오기 분석·검수·저장 IPC와 배치는 main 서비스가 담당한다. renderer는 수정 패치만 전달하며 상세 미리보기는 공용 components의 render-html iframe을 사용한다. `bank?batch=<id>`는 저장 문제의 `extra.importBatchId`로 조회한다. 5B 구현·캡처 확장은 `docs/STAGE5B.md` 참조.
 - PDF: 숨은 BrowserWindow 에 render-html 결과를 넣고 `webContents.printToPDF` → `createPdfExporter` 의 `PdfRenderer` 로 주입.
 - 시험지 글꼴: Windows 기본 `바탕`·`맑은 고딕`(Word 출력과 동일). UI 글꼴: Pretendard(번들, OFL).
 

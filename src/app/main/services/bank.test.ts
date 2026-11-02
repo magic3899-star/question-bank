@@ -98,18 +98,18 @@ describe('화면용 문제은행 서비스', () => {
     await storage.questions.upsertMany(rows.map((row) => makeQuestion(row)));
     const all = await service().list({ offset: 0, limit: 50 });
     expect(all.items.map((q) => q.id)).toEqual([
-      'first-subject',
       'fake-1',
       'fake-100',
       'fake-2',
       'fake-10',
       'fake-0',
-      'missing-first-subject',
+      'first-subject',
       'missing-old',
+      'missing-first-subject',
     ]);
     expect((await service().list({ offset: 2, limit: 2 })).items.map((q) => q.id)).toEqual([
-      'fake-100',
       'fake-2',
+      'fake-10',
     ]);
     const filtered = await service().list({ subject: 'law', objectivePrefix: '법규 1', offset: 1, limit: 2 });
     expect(filtered.items.map((q) => q.id)).toEqual(['fake-100', 'fake-2']);
@@ -144,6 +144,24 @@ describe('화면용 문제은행 서비스', () => {
     expect(detail.question.id).toBe('asset');
     expect(Object.keys(detail.assets)).toEqual(['used']);
     expect((await service().list({ offset: 0, limit: 1 })).items[0].hasImage).toBe(true);
+  });
+  it('설정의 과목 순서를 바꾸면 목록도 트리와 같은 과목 순서로 바뀐다', async () => {
+    await storage.questions.upsertMany([
+      makeQuestion({ id: 'law-row', subject: 'law', objectiveCode: '법규 1-1-1' }),
+      makeQuestion({ id: 'anatomy-row', subject: 'anatomy', objectiveCode: '해부 1-1-1' }),
+    ]);
+    let subjects = defaultSettings.subjects;
+    const ordered = createBankService(storage, () => ({ ...defaultSettings, subjects }));
+    expect((await ordered.list({ offset: 0, limit: 50 })).items.map((i) => i.id)).toEqual([
+      'law-row',
+      'anatomy-row',
+    ]);
+    subjects = [...subjects].reverse();
+    expect((await ordered.list({ offset: 0, limit: 50 })).items.map((i) => i.id)).toEqual([
+      'anatomy-row',
+      'law-row',
+    ]);
+    expect((await ordered.stats()).bySubject.map((s) => s.subject)).toEqual(['anatomy', 'law']);
   });
   it.each([
     null,

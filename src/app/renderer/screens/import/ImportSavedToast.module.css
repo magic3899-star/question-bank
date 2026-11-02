@@ -1,0 +1,16 @@
+.toast {
+  position: fixed;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  max-width: calc(100% - var(--space-8));
+  padding: var(--space-4);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-dialog);
+  background: var(--surface);
+  z-index: 2;
+}

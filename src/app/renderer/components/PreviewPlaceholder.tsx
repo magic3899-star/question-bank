@@ -1,4 +1,4 @@
-import { Skeleton } from '../../components/index';
+import { Skeleton } from './Skeleton';
 import styles from './PreviewPlaceholder.module.css';
 
 export function PreviewPlaceholder() {

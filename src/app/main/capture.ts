@@ -2,6 +2,31 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { BrowserWindow } from 'electron';
 import { routeIds as routes } from '../shared/index';
+import type { ImportReview } from '../shared/index';
+
+export function captureDeadline<T>(action: Promise<T>, stage: string, timeoutMs = 10000): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () =>
+        reject(
+          new Error(
+            `${stage}: ${Math.max(1, Math.ceil(timeoutMs / 1000))}초 안에 완료되지 않았습니다. 화면 상태를 확인하고 다시 캡처하세요.`,
+          ),
+        ),
+      timeoutMs,
+    );
+    action.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (cause) => {
+        clearTimeout(timer);
+        reject(cause);
+      },
+    );
+  });
+}
 
 export function writeCaptureFailure(directory: string, message: string): void {
   mkdirSync(directory, { recursive: true });
@@ -15,7 +40,7 @@ export function writeCaptureFailure(directory: string, message: string): void {
 export async function captureRoutes(
   window: BrowserWindow,
   directory: string,
-  options: { timeoutMs?: number } = {},
+  options: { timeoutMs?: number; importReview?: ImportReview } = {},
 ): Promise<boolean> {
   mkdirSync(directory, { recursive: true });
   const report: { route: string; file: string; waitMs: number; error: string | null }[] = [];
@@ -25,36 +50,49 @@ export async function captureRoutes(
       [1100, 700],
     ]) {
       window.setContentSize(width!, height!);
-      for (const route of routes) {
-        const file = `${route}-${theme}-${width}x${height}.png`;
+      const targets = routes.flatMap((route) =>
+        route === 'import' && options.importReview ? [route, 'import-review'] : [route],
+      );
+      for (const target of targets) {
+        const route = target === 'import-review' ? 'import' : target;
+        const file = `${target}-${theme}-${width}x${height}.png`;
         const started = Date.now();
         let error: string | null = null;
         try {
-          await window.webContents.executeJavaScript(
-            `document.body.dataset.ready = ''; document.documentElement.dataset.captureTheme = '${theme}'; document.documentElement.dataset.theme = '${theme}'; location.hash = '#/${route}?capture=${theme}-${width}-${height}';`,
+          const run = (code: string, stage: string) =>
+            captureDeadline(window.webContents.executeJavaScript(code), stage, options.timeoutMs);
+          if (target === 'import-review')
+            await run(
+              `sessionStorage.setItem('qb-capture-import-review', ${JSON.stringify(JSON.stringify(options.importReview))});`,
+              '검수 결과 전달',
+            );
+          await run(
+            `document.body.dataset.ready = ''; document.documentElement.dataset.captureTheme = '${theme}'; document.documentElement.dataset.theme = '${theme}'; location.hash = '#/${route}?capture=${theme}-${width}-${height}${target === 'import-review' ? '&captureReview=1' : ''}';`,
+            '화면 이동',
           );
           let ready = false;
           while (Date.now() - started < (options.timeoutMs ?? 10000)) {
-            ready = (await window.webContents.executeJavaScript(
-              `document.body.dataset.ready === '${route}'`,
-            )) as boolean;
+            ready = (await run(`document.body.dataset.ready === '${route}'`, '화면 준비 확인')) as boolean;
             if (ready) break;
             await new Promise((resolve) => setTimeout(resolve, 50));
           }
           if (!ready) throw new Error('화면 준비 신호를 10초 안에 받지 못했습니다.');
-          await window.webContents.executeJavaScript(
+          await run(
             `document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))`,
+            '글꼴과 그리기 대기',
           );
-          const screenshot = await window.webContents.capturePage();
+          const screenshot = await captureDeadline(
+            window.webContents.capturePage(),
+            'PNG 캡처',
+            options.timeoutMs,
+          );
           writeFileSync(join(directory, file), screenshot.toPNG());
-          const screenError = (await window.webContents.executeJavaScript(
-            `document.body.dataset.error || ''`,
-          )) as string;
+          const screenError = (await run(`document.body.dataset.error || ''`, '화면 오류 확인')) as string;
           if (screenError) error = screenError;
         } catch (cause) {
           error = cause instanceof Error ? cause.message : String(cause);
         }
-        report.push({ route, file, waitMs: Date.now() - started, error });
+        report.push({ route: target, file, waitMs: Date.now() - started, error });
       }
     }
   writeFileSync(join(directory, 'capture-report.json'), JSON.stringify(report, null, 2), 'utf8');

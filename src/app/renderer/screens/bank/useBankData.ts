@@ -5,6 +5,7 @@ import { unwrap } from '../../lib/index';
 
 export function useBankData(query: URLSearchParams) {
   const [subject, setSubject] = useState(query.get('subject') ?? '');
+  const [batch, setBatch] = useState(query.get('batch') ?? '');
   const [objective, setObjective] = useState('');
   const [withoutObjective, setWithoutObjectiveValue] = useState(query.get('withoutObjective') === '1');
   const [search, setSearch] = useState('');
@@ -36,8 +37,9 @@ export function useBankData(query: URLSearchParams) {
         withoutObjective,
         offset,
         limit: 50,
+        batch: batch || undefined,
       }),
-    [subject, objective, text, withoutObjective, offset],
+    [subject, objective, text, withoutObjective, offset, batch],
   );
   const selected = selection?.list === list.value ? (selection?.id ?? '') : (list.value?.items[0]?.id ?? '');
   const detail = useApi<QuestionDetail | undefined>(
@@ -62,6 +64,11 @@ export function useBankData(query: URLSearchParams) {
     stats: overview.value?.stats,
     tree: overview.value?.tree ?? {},
     subject,
+    batch,
+    clearBatch: () => {
+      setBatch('');
+      setOffset(0);
+    },
     objective,
     withoutObjective,
     search,

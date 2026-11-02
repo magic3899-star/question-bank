@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { makeQuestion } from '../../../../../tests/fixtures/builders';
-import { QuestionPreview } from './QuestionPreview';
+import { QuestionPreview } from '../../components/index';
 
 describe('미리보기 로딩·오류·빈 상태', () => {
   const common = { retry: () => {}, onReady: () => {} };

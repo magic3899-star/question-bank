@@ -3,6 +3,7 @@ import type { WebContents } from 'electron';
 import { channels } from '../shared/index';
 import type { AppInfo, Result } from '../shared/index';
 import type { createBankService } from './services/bank';
+import type { createImportService } from './services/import';
 import type { createSettingsService } from './settings';
 
 export async function toResult<T>(action: () => T | Promise<T>): Promise<Result<T>> {
@@ -21,6 +22,7 @@ export function registerIpc(deps: {
   info: () => AppInfo;
   settings: ReturnType<typeof createSettingsService>;
   bank?: ReturnType<typeof createBankService>;
+  importer?: ReturnType<typeof createImportService>;
   openDataDir: () => Promise<void>;
 }): void {
   const bank = () => {
@@ -29,6 +31,11 @@ export function registerIpc(deps: {
         deps.info().startupError ?? '저장소가 준비되지 않았습니다. 데이터 폴더와 백업을 확인하세요.',
       );
     return deps.bank;
+  };
+  const importer = () => {
+    if (!deps.importer)
+      throw new Error(deps.info().startupError ?? '가져오기를 준비할 수 없습니다. 저장소를 확인하세요.');
+    return deps.importer;
   };
   const handlers: Record<string, (value: unknown) => unknown> = {
     [channels.appInfo]: deps.info,
@@ -39,6 +46,11 @@ export function registerIpc(deps: {
     [channels.bankList]: (value) => bank().list(value),
     [channels.bankTree]: (value) => bank().objectiveTree(value),
     [channels.bankGet]: (value) => bank().get(value),
+    [channels.bankDeleteMany]: (value) => bank().deleteMany(value),
+    [channels.importPickFiles]: () => importer().pickFiles(),
+    [channels.importAnalyze]: (value) => importer().analyze(value),
+    [channels.importCommit]: (value) => importer().commit(value),
+    [channels.importDiscard]: (value) => importer().discard(value),
   };
   for (const [channel, action] of Object.entries(handlers)) {
     ipcMain.removeHandler(channel);

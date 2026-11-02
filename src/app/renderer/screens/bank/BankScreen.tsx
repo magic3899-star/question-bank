@@ -4,7 +4,7 @@ import { useReadySignal } from '../../hooks/index';
 import { useBankData } from './useBankData';
 import { ObjectiveTree } from './ObjectiveTree';
 import { QuestionList } from './QuestionList';
-import { QuestionPreview } from './QuestionPreview';
+import { QuestionPreview } from '../../components/index';
 import styles from './BankScreen.module.css';
 
 export function BankScreen({ query }: { query: URLSearchParams }) {

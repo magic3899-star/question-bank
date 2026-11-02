@@ -71,6 +71,9 @@
   color: var(--text-muted);
   margin-top: var(--space-2);
 }
+.healthy svg {
+  color: var(--success);
+}
 .help-strip {
   display: flex;
   align-items: center;

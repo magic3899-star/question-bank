@@ -35,7 +35,7 @@ function validateList(value: unknown): ListRequest {
   ) {
     throw new Error('조회 범위가 올바르지 않습니다. 시작 위치는 0 이상, 조회 개수는 1~100으로 지정하세요.');
   }
-  for (const key of ['subject', 'objectivePrefix', 'text'])
+  for (const key of ['subject', 'objectivePrefix', 'text', 'batch'])
     if (input[key] !== undefined) requireText(input[key], '검색어');
   if (input.withoutObjective !== undefined && typeof input.withoutObjective !== 'boolean')
     throw new Error('학습목표 필터가 올바르지 않습니다. 필터를 다시 선택하세요.');
@@ -65,6 +65,12 @@ function summarize(q: Question): QuestionSummary {
 }
 export function createBankService(storage: Storage, settings: () => Settings) {
   return {
+    async deleteMany(value: unknown): Promise<void> {
+      if (!Array.isArray(value) || value.length > 10000)
+        throw new Error('삭제할 문제 ID 목록을 확인하세요. 한 번에 10,000개까지 삭제할 수 있습니다.');
+      const ids = value.map((id) => requireText(id, '문제 ID'));
+      await storage.questions.delete(ids);
+    },
     async stats(): Promise<BankStats> {
       const questions = await storage.questions.query({});
       const subjects = new Map(settings().subjects.map((s) => [s.id, s.name]));
@@ -96,17 +102,21 @@ export function createBankService(storage: Storage, settings: () => Settings) {
       // 코드 구간 정렬과 누락 목표의 마지막 배치는 페이지를 자르기 전에 적용해야 한다.
       const all = (await storage.questions.query(query)).filter(
         (q) =>
-          !input.objectivePrefix ||
-          (q.objectiveCode && matchesObjectivePrefix(q.objectiveCode, input.objectivePrefix)),
+          (!input.batch || q.extra.importBatchId === input.batch) &&
+          (!input.objectivePrefix ||
+            (q.objectiveCode && matchesObjectivePrefix(q.objectiveCode, input.objectivePrefix))),
       );
       const compareText = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+      const order = new Map(settings().subjects.map((s, index) => [s.id, index]));
+      const compareSubject = (a: string, b: string) =>
+        (order.get(a) ?? order.size) - (order.get(b) ?? order.size) || compareText(a, b);
       all.sort((a, b) => {
         const created = () => compareText(a.createdAt, b.createdAt) || compareText(a.id, b.id);
         if (input.withoutObjective) return created();
         const left = a.objectiveCode?.trim();
         const right = b.objectiveCode?.trim();
-        if (!left || !right) return left ? -1 : right ? 1 : compareText(a.subject, b.subject) || created();
-        return compareText(a.subject, b.subject) || compareObjectiveCodes(left, right) || created();
+        if (!left || !right) return left ? -1 : right ? 1 : compareSubject(a.subject, b.subject) || created();
+        return compareSubject(a.subject, b.subject) || compareObjectiveCodes(left, right) || created();
       });
       return { items: all.slice(input.offset, input.offset + input.limit).map(summarize), total: all.length };
     },

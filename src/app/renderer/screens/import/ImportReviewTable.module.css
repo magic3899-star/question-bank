@@ -1,0 +1,74 @@
+.review {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.summary {
+  padding: var(--space-3) var(--space-4);
+  font-weight: var(--weight-medium);
+}
+.scroll {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+.scroll > p,
+.scroll > ul {
+  padding: var(--space-4);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+  text-align: left;
+  padding: var(--space-2);
+  z-index: 1;
+}
+.table th:first-child {
+  width: 24%;
+}
+.table th:nth-child(2) {
+  width: 18%;
+}
+.table th:nth-child(3) {
+  width: 7%;
+}
+.table th:last-child {
+  width: 12%;
+}
+.table td {
+  border-bottom: var(--line) solid var(--border);
+  padding: var(--space-2);
+  vertical-align: top;
+}
+.table tr[tabindex] {
+  scroll-margin-top: calc(var(--button-height) + var(--space-4));
+  height: var(--row-height);
+  cursor: pointer;
+}
+.table tr[tabindex]:hover,
+.selected {
+  background: var(--accent-soft);
+}
+.table button {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  color: var(--accent);
+}
+.table small {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}

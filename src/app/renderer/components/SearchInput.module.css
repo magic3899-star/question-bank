@@ -7,8 +7,8 @@
   bottom: var(--space-3);
   color: var(--text-muted);
 }
-.search input {
-  padding-left: var(--space-8);
+.search input:not([type='checkbox']) {
+  padding-left: calc(var(--space-3) + var(--icon-sm) + var(--space-2));
 }
 .search label > span {
   font-size: var(--font-xs);

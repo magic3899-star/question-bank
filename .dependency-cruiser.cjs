@@ -6,6 +6,7 @@ const modules = [
   ['src/core/registry', ['contracts']],
   ['src/modules/content-model', ['contracts']],
   ['src/modules/rng', ['contracts']],
+  ['src/modules/layout-parser', ['contracts', 'content-model', 'objective-code']],
   ['src/modules/storage', ['contracts', 'content-model']],
   ['src/modules/objective-code', ['contracts']],
   ['src/modules/rules', ['contracts', 'objective-code']],
@@ -18,7 +19,7 @@ const modules = [
   ['src/modules/updater', []],
 ];
 const plugins = {
-  importers: ['contracts', 'content-model'],
+  importers: ['contracts', 'content-model', 'layout-parser'],
   validators: ['contracts', 'content-model'],
   constraints: ['contracts', 'content-model', 'objective-code'],
   shuffler: ['contracts', 'rng'],

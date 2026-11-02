@@ -11,6 +11,8 @@ import {
   Tooltip,
 } from '../../components/index';
 interface QuestionListProps {
+  batch: string;
+  clearBatch: () => void;
   stats?: BankStats;
   subject: string;
   objective: string;
@@ -31,6 +33,8 @@ interface QuestionListProps {
 }
 import styles from './QuestionList.module.css';
 export function QuestionList({
+  batch,
+  clearBatch,
   stats,
   subject,
   objective,
@@ -55,11 +59,12 @@ export function QuestionList({
         <SearchInput id="quick-search" value={search} onChange={(event) => setSearch(event.target.value)} />
         <div className={styles['list-summary']}>
           <strong>{total.toLocaleString('ko-KR')}문제</strong>
-          <span>보기 전용</span>
+          <span>{batch ? '이번 가져오기' : '보기 전용'}</span>
         </div>
-        {(subject || objective || withoutObjective) && (
+        {(batch || subject || objective || withoutObjective) && (
           <div className={styles['active-filter']}>
             <span>
+              {batch ? '이번 가져오기 · ' : ''}
               {objective || stats?.bySubject.find((s) => s.subject === subject)?.name || '전체 과목'}
               {withoutObjective ? ' · 학습목표 없음' : ''}
             </span>
@@ -67,6 +72,7 @@ export function QuestionList({
               onClick={() => {
                 filter('');
                 setWithoutObjective(false);
+                clearBatch();
               }}
             >
               필터 해제

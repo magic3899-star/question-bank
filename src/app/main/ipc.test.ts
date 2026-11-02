@@ -55,5 +55,12 @@ describe('IPC 오류와 요청 경계', () => {
       await handlers.get(channels.appInfo)!({ ...event, sender: {} } as IpcMainInvokeEvent),
     ).toMatchObject({ ok: false });
     expect(await handlers.get(channels.settingsGet)!(event)).toMatchObject({ ok: true });
+    expect(await handlers.get(channels.importAnalyze)!(event, {})).toEqual({
+      ok: false,
+      message: '백업을 확인하세요.',
+    });
+    for (const action of handlers.values()) {
+      expect(await action({ ...event, senderFrame: {} } as IpcMainInvokeEvent)).toMatchObject({ ok: false });
+    }
   });
 });

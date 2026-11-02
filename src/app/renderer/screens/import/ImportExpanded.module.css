@@ -1,0 +1,12 @@
+.expanded {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface-2);
+}
+.preview {
+  display: flex;
+  min-height: calc(var(--row-height) * 7);
+  min-width: 0;
+}

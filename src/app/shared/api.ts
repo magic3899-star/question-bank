@@ -1,4 +1,5 @@
 import type { AssetData, Question } from '../../contracts/index';
+import type { ImportCommitResult, ImportOptions, ImportPatch, ImportReview } from './import';
 
 export const channels = {
   appInfo: 'app:info',
@@ -9,6 +10,11 @@ export const channels = {
   bankList: 'bank:list',
   bankTree: 'bank:objective-tree',
   bankGet: 'bank:get',
+  bankDeleteMany: 'bank:delete-many',
+  importPickFiles: 'import:pick-files',
+  importAnalyze: 'import:analyze',
+  importCommit: 'import:commit',
+  importDiscard: 'import:discard',
 } as const;
 export type Theme = 'system' | 'light' | 'dark';
 export interface Settings {
@@ -42,6 +48,7 @@ export interface BankStats {
   warnings: { withoutObjective: number };
 }
 export interface ListRequest {
+  batch?: string;
   subject?: string;
   objectivePrefix?: string;
   text?: string;
@@ -59,6 +66,13 @@ export interface QuestionDetail {
   assets: Record<string, AssetData>;
 }
 export interface QbApi {
+  import: {
+    pickFiles(): Promise<Result<string[]>>;
+    pathsForFiles(files: File[]): string[];
+    analyze(request: { paths: string[]; options: ImportOptions }): Promise<Result<ImportReview>>;
+    commit(request: { batchId: string; patches: ImportPatch[] }): Promise<Result<ImportCommitResult>>;
+    discard(batchId: string): Promise<Result<void>>;
+  };
   app: { info(): Promise<Result<AppInfo>>; openDataDir(): Promise<Result<void>> };
   settings: {
     get(): Promise<Result<Settings>>;
@@ -69,5 +83,6 @@ export interface QbApi {
     list(request: ListRequest): Promise<Result<{ items: QuestionSummary[]; total: number }>>;
     objectiveTree(subject: string): Promise<Result<ObjectiveNode[]>>;
     get(id: string): Promise<Result<QuestionDetail>>;
+    deleteMany(ids: string[]): Promise<Result<void>>;
   };
 }

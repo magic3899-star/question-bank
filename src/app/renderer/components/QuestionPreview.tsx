@@ -1,6 +1,8 @@
 import { FileText } from 'lucide-react';
-import type { QuestionDetail } from '../../../shared/index';
-import { Badge, EmptyState, ErrorState } from '../../components/index';
+import type { QuestionDetail } from '../../shared/index';
+import { Badge } from './Badge';
+import { EmptyState } from './EmptyState';
+import { ErrorState } from './ErrorState';
 import { PreviewFrame } from './PreviewFrame';
 import { PreviewPlaceholder } from './PreviewPlaceholder';
 import styles from './QuestionPreview.module.css';
