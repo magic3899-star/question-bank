@@ -19,6 +19,7 @@ const screens = import.meta.glob<{ Screen: ComponentType<ScreenProps> }>('../scr
 export const routes = definitions.map(({ icon, ...definition }) => ({
   ...definition,
   icon: icons[icon],
-  component: (screens[`../screens/${definition.id}/index.ts`] ?? screens['../screens/coming-soon/index.ts'])!
-    .Screen,
+  component: (screens[
+    `../screens/${definition.id === 'add' || definition.id === 'edit' ? 'editor' : definition.id}/index.ts`
+  ] ?? screens['../screens/coming-soon/index.ts'])!.Screen,
 }));

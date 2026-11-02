@@ -1,6 +1,6 @@
 import type { Question, QuestionQuery } from '../../../contracts/index';
 import type { Storage } from '../../../modules/storage/index';
-import { blocksToPlainText, collectAssetIds } from '../../../modules/content-model/index';
+import { blocksToPlainText, collectAssetIds, isEmptyBlocks } from '../../../modules/content-model/index';
 import {
   compareObjectiveCodes,
   matchesObjectivePrefix,
@@ -37,6 +37,8 @@ function validateList(value: unknown): ListRequest {
   }
   for (const key of ['subject', 'objectivePrefix', 'text', 'batch'])
     if (input[key] !== undefined) requireText(input[key], '검색어');
+  if (input.withoutExplanation !== undefined && typeof input.withoutExplanation !== 'boolean')
+    throw new Error('해설 필터를 다시 선택하세요.');
   if (input.withoutObjective !== undefined && typeof input.withoutObjective !== 'boolean')
     throw new Error('학습목표 필터가 올바르지 않습니다. 필터를 다시 선택하세요.');
   return input as unknown as ListRequest;
@@ -102,7 +104,8 @@ export function createBankService(storage: Storage, settings: () => Settings) {
       // 코드 구간 정렬과 누락 목표의 마지막 배치는 페이지를 자르기 전에 적용해야 한다.
       const all = (await storage.questions.query(query)).filter(
         (q) =>
-          (!input.batch || q.extra.importBatchId === input.batch) &&
+          (!input.batch || q.extra.importBatchId === input.batch || q.extra.addBatchId === input.batch) &&
+          (!input.withoutExplanation || isEmptyBlocks(q.explanation)) &&
           (!input.objectivePrefix ||
             (q.objectiveCode && matchesObjectivePrefix(q.objectiveCode, input.objectivePrefix))),
       );

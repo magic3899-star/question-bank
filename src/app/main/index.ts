@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, screen, shell } from 'electron';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { openStorage } from '../../modules/storage/index';
 import type { Storage } from '../../modules/storage/index';
@@ -7,6 +8,7 @@ import { backupBeforeMigrate, getPaths, preparePaths } from './paths';
 import { createSettingsService, defaultSettings } from './settings';
 import { createAppInfoService } from './services/app-info';
 import { createBankService } from './services/bank';
+import { createEditorService } from './services/editor';
 import { createImportService } from './services/import';
 import { registerIpc } from './ipc';
 import { captureDeadline, captureRoutes, writeCaptureFailure } from './capture';
@@ -115,18 +117,50 @@ if (!app.requestSingleInstanceLock()) {
             },
           })
         : undefined;
+      let editorDirty = false;
+      let closing = false;
+      let closePrompt = false;
+      const editor = storage ? createEditorService(storage, { now }) : undefined;
       registerIpc({
         contents: win.webContents,
         info: info.get,
         settings,
         bank: storage ? createBankService(storage, settings.get) : undefined,
         importer,
+        editor,
+        setDirty: (value) => {
+          editorDirty = value;
+        },
         openDataDir: async () => {
           const message = await shell.openPath(paths.dataDir);
           if (message) throw new Error('데이터 폴더를 열지 못했습니다. 폴더 경로와 접근 권한을 확인하세요.');
         },
       });
-      win.on('close', () => {
+      win.on('close', (event) => {
+        if (editorDirty && !closing && !process.env.QB_CAPTURE_DIR) {
+          event.preventDefault();
+          if (closePrompt) return;
+          closePrompt = true;
+          void dialog
+            .showMessageBox(win, {
+              type: 'question',
+              title: '저장하지 않은 변경',
+              message: '저장하지 않은 변경이 있습니다. 변경을 버리고 창을 닫을까요?',
+              buttons: ['계속 편집', '변경을 버리고 닫기'],
+              defaultId: 0,
+              cancelId: 0,
+            })
+            .then(({ response }) => {
+              if (response === 1) {
+                closing = true;
+                win.close();
+              }
+            })
+            .finally(() => {
+              closePrompt = false;
+            });
+          return;
+        }
         if (process.env.QB_CAPTURE_DIR) return;
         try {
           settings.update({ window: win.getNormalBounds() });
@@ -166,7 +200,11 @@ if (!app.requestSingleInstanceLock()) {
                   60000,
                 )
               : undefined;
-          const success = await captureRoutes(win, process.env.QB_CAPTURE_DIR, { importReview });
+          const pastePath = process.env.QB_CAPTURE_PASTE_FILE;
+          if (pastePath && (!/\.txt$/iu.test(pastePath) || /(?:\.tmp-realcheck|문제 디비)/u.test(pastePath)))
+            throw new Error('캡처 입력은 허용된 가짜 텍스트 파일을 지정하세요.');
+          const pasteText = pastePath ? readFileSync(pastePath, 'utf8') : undefined;
+          const success = await captureRoutes(win, process.env.QB_CAPTURE_DIR, { importReview, pasteText });
           app.exit(success ? 0 : 1);
         } catch (cause) {
           console.error('캡처 저장에 실패했습니다. 출력 폴더와 쓰기 권한을 확인하세요.', cause);

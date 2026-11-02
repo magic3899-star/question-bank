@@ -4,6 +4,7 @@ import { useReadySignal } from '../../hooks/index';
 import { useBankData } from './useBankData';
 import { ObjectiveTree } from './ObjectiveTree';
 import { QuestionList } from './QuestionList';
+import { BankActions } from './BankActions';
 import { QuestionPreview } from '../../components/index';
 import styles from './BankScreen.module.css';
 
@@ -25,6 +26,7 @@ export function BankScreen({ query }: { query: URLSearchParams }) {
       <ObjectiveTree {...bank} />
       <QuestionList {...bank} />
       <QuestionPreview
+        actions={<BankActions detail={bank.detail} refresh={bank.retry} />}
         detail={bank.detail}
         loading={bank.detailLoading}
         error={bank.detailError}

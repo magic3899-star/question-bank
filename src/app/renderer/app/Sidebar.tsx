@@ -24,21 +24,23 @@ export function Sidebar({
         <span>문제은행</span>
       </div>
       <nav aria-label="주 메뉴">
-        {routes.map(({ id, title, icon: Icon }) => (
-          <Fragment key={id}>
-            {id === 'generate' && <div className={styles['nav-separator']} />}
-            <a
-              href={`#/${id}`}
-              aria-label={title}
-              title={collapsed ? title : undefined}
-              className={route === id ? styles.active : ''}
-              aria-current={route === id ? 'page' : undefined}
-            >
-              <Icon aria-hidden="true" />
-              <span>{title}</span>
-            </a>
-          </Fragment>
-        ))}
+        {routes
+          .filter((item) => item.id !== 'edit')
+          .map(({ id, title, icon: Icon }) => (
+            <Fragment key={id}>
+              {id === 'generate' && <div className={styles['nav-separator']} />}
+              <a
+                href={`#/${id}`}
+                aria-label={title}
+                title={collapsed ? title : undefined}
+                className={route === id ? styles.active : ''}
+                aria-current={route === id ? 'page' : undefined}
+              >
+                <Icon aria-hidden="true" />
+                <span>{title}</span>
+              </a>
+            </Fragment>
+          ))}
       </nav>
       <div className={styles['sidebar-bottom']}>
         <span className={styles['local-status']}>

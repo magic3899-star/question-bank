@@ -4,6 +4,8 @@ import type { BrowserWindow } from 'electron';
 import { routeIds as routes } from '../shared/index';
 import type { ImportReview } from '../shared/index';
 
+export const CAPTURE_COMPOSITOR_SETTLE_MS = 400;
+
 export function captureDeadline<T>(action: Promise<T>, stage: string, timeoutMs = 10000): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(
@@ -40,7 +42,7 @@ export function writeCaptureFailure(directory: string, message: string): void {
 export async function captureRoutes(
   window: BrowserWindow,
   directory: string,
-  options: { timeoutMs?: number; importReview?: ImportReview } = {},
+  options: { timeoutMs?: number; importReview?: ImportReview; pasteText?: string } = {},
 ): Promise<boolean> {
   mkdirSync(directory, { recursive: true });
   const report: { route: string; file: string; waitMs: number; error: string | null }[] = [];
@@ -51,23 +53,32 @@ export async function captureRoutes(
     ]) {
       window.setContentSize(width!, height!);
       const targets = routes.flatMap((route) =>
-        route === 'import' && options.importReview ? [route, 'import-review'] : [route],
+        route === 'import' && options.importReview
+          ? [route, 'import-review']
+          : route === 'add' && options.pasteText
+            ? [route, 'add-paste']
+            : [route],
       );
       for (const target of targets) {
-        const route = target === 'import-review' ? 'import' : target;
+        const route = target === 'import-review' ? 'import' : target === 'add-paste' ? 'add' : target;
         const file = `${target}-${theme}-${width}x${height}.png`;
         const started = Date.now();
         let error: string | null = null;
         try {
           const run = (code: string, stage: string) =>
             captureDeadline(window.webContents.executeJavaScript(code), stage, options.timeoutMs);
+          if (target === 'add-paste')
+            await run(
+              `sessionStorage.setItem('qb-capture-paste', ${JSON.stringify(options.pasteText)});`,
+              '붙여넣기 글자 전달',
+            );
           if (target === 'import-review')
             await run(
               `sessionStorage.setItem('qb-capture-import-review', ${JSON.stringify(JSON.stringify(options.importReview))});`,
               '검수 결과 전달',
             );
           await run(
-            `document.body.dataset.ready = ''; document.documentElement.dataset.captureTheme = '${theme}'; document.documentElement.dataset.theme = '${theme}'; location.hash = '#/${route}?capture=${theme}-${width}-${height}${target === 'import-review' ? '&captureReview=1' : ''}';`,
+            `document.body.dataset.ready = ''; document.documentElement.dataset.captureTheme = '${theme}'; document.documentElement.dataset.theme = '${theme}'; location.hash = '#/${route}?capture=${theme}-${width}-${height}${target === 'import-review' ? '&captureReview=1' : target === 'add-paste' ? '&capturePaste=1' : ''}';`,
             '화면 이동',
           );
           let ready = false;
@@ -80,6 +91,10 @@ export async function captureRoutes(
           await run(
             `document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))`,
             '글꼴과 그리기 대기',
+          );
+          await run(
+            `new Promise(resolve => setTimeout(resolve, ${CAPTURE_COMPOSITOR_SETTLE_MS}))`,
+            '미리보기 합성 대기',
           );
           const screenshot = await captureDeadline(
             window.webContents.capturePage(),

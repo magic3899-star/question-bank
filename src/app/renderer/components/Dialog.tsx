@@ -34,7 +34,7 @@ export function Dialog({
       onKeyDown={(event) => {
         if (event.key !== 'Tab') return;
         const items = ref.current?.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), input, select, [tabindex="0"]',
+          'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [contenteditable="true"], [tabindex="0"]',
         );
         if (!items?.length) return;
         if (event.shiftKey && document.activeElement === items[0]) {

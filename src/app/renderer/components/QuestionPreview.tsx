@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { FileText } from 'lucide-react';
 import type { QuestionDetail } from '../../shared/index';
 import { Badge } from './Badge';
@@ -13,7 +14,9 @@ export function QuestionPreview({
   error,
   retry,
   onReady,
+  actions,
 }: {
+  actions?: ReactNode;
   detail?: QuestionDetail;
   loading: boolean;
   error: string;
@@ -43,9 +46,7 @@ export function QuestionPreview({
           description="본문과 정답·해설을 확인할 수 있습니다."
         />
       )}
-      <div className={styles['detail-footer']}>
-        <span>문항 편집은 다음 단계에서 제공됩니다.</span>
-      </div>
+      <div className={styles['detail-footer']}>{actions}</div>
     </section>
   );
 }

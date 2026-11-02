@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
 import { channels } from '../shared/index';
 import type { AppInfo, Result } from '../shared/index';
+import type { createEditorService } from './services/editor';
 import type { createBankService } from './services/bank';
 import type { createImportService } from './services/import';
 import type { createSettingsService } from './settings';
@@ -22,6 +23,8 @@ export function registerIpc(deps: {
   info: () => AppInfo;
   settings: ReturnType<typeof createSettingsService>;
   bank?: ReturnType<typeof createBankService>;
+  editor?: ReturnType<typeof createEditorService>;
+  setDirty?: (dirty: boolean) => void;
   importer?: ReturnType<typeof createImportService>;
   openDataDir: () => Promise<void>;
 }): void {
@@ -37,7 +40,24 @@ export function registerIpc(deps: {
       throw new Error(deps.info().startupError ?? '가져오기를 준비할 수 없습니다. 저장소를 확인하세요.');
     return deps.importer;
   };
+  const editor = () => {
+    if (!deps.editor) throw new Error('편집기를 준비할 수 없습니다. 저장소를 확인하세요.');
+    return deps.editor;
+  };
   const handlers: Record<string, (value: unknown) => unknown> = {
+    [channels.bankValidate]: (v) => editor().validate(v),
+    [channels.bankSave]: (v) => editor().save(v),
+    [channels.bankDelete]: (v) => editor().delete(v),
+    [channels.bankRestore]: (v) => editor().restore(v),
+    [channels.bankCodes]: (v) => editor().objectiveCodes(v),
+    [channels.bankExplanations]: (v) => editor().applyExplanations(v),
+    [channels.assetsAdd]: (v) => editor().addAsset(v),
+    [channels.editorParse]: (v) => editor().parseText(v),
+    [channels.editorExplanations]: (v) => editor().parseExplanations(v),
+    [channels.editorDirty]: (v) => {
+      if (typeof v !== 'boolean') throw new Error('편집 상태가 올바르지 않습니다.');
+      deps.setDirty?.(v);
+    },
     [channels.appInfo]: deps.info,
     [channels.openDataDir]: deps.openDataDir,
     [channels.settingsGet]: deps.settings.get,
@@ -52,7 +72,8 @@ export function registerIpc(deps: {
     [channels.importCommit]: (value) => importer().commit(value),
     [channels.importDiscard]: (value) => importer().discard(value),
   };
-  for (const [channel, action] of Object.entries(handlers)) {
+  for (const channel of Object.values(channels)) {
+    const action = handlers[channel]!;
     ipcMain.removeHandler(channel);
     ipcMain.handle(channel, (event, value: unknown) =>
       toResult(() => {

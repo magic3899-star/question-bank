@@ -20,7 +20,7 @@ export function PageHeader({ page }: { page: { id: string; title: string; descri
         {page.id === 'bank' && (
           <>
             <span className={styles['keyboard-hint']}>Ctrl+K 검색</span>
-            <Button disabledReason="문제 추가는 다음 단계에서 제공됩니다.">
+            <Button onClick={() => navigate('add')}>
               <Plus />
               문제 추가
             </Button>

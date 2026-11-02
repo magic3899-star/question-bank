@@ -1,0 +1,77 @@
+.editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  height: 100%;
+  padding: var(--space-6);
+  overflow: hidden;
+}
+.form {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+  padding-right: var(--space-2);
+}
+.form section {
+  display: grid;
+  gap: var(--space-2);
+}
+.form label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.form textarea {
+  width: 100%;
+  min-height: var(--header-height);
+  color: var(--text);
+  background: var(--surface);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+}
+.form fieldset {
+  display: grid;
+  gap: var(--space-2);
+  border: var(--line) solid var(--border);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+  overflow: auto;
+}
+.paper {
+  display: flex;
+  flex: 1;
+  min-height: var(--sidebar-width);
+}
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-block: var(--space-3);
+  background: var(--surface);
+}
+.error {
+  color: var(--danger);
+}
+.warn {
+  color: var(--warn);
+}
+.info {
+  color: var(--text-muted);
+}
+.preview li button {
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: inherit;
+}

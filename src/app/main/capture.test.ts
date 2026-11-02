@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserWindow } from 'electron';
-import { captureDeadline, captureRoutes, writeCaptureFailure } from './capture';
+import { CAPTURE_COMPOSITOR_SETTLE_MS, captureDeadline, captureRoutes, writeCaptureFailure } from './capture';
 import type { ImportReview } from '../shared/index';
 import { routeIds } from '../shared/index';
 
@@ -47,6 +47,9 @@ describe('검수 캡처 실행기', () => {
     expect(scripts.filter((script) => script.includes('document.fonts.ready'))).toHaveLength(
       routeIds.length * 4,
     );
+    expect(CAPTURE_COMPOSITOR_SETTLE_MS).toBe(400);
+    const frames = scripts.findIndex((script) => script.includes('document.fonts.ready'));
+    expect(scripts[frames + 1]).toContain('setTimeout(resolve, 400)');
     expect([...new Set(report().map((row) => row.route))]).toEqual(routeIds);
   });
   it('준비 시간 초과에는 PNG 없이 오류를 기록하고 실패를 반환한다', async () => {
@@ -101,8 +104,21 @@ describe('검수 캡처 실행기', () => {
       diagnostics: [],
       counts: { ok: 0, warn: 0, error: 0, excluded: 0 },
     };
-    expect(await captureRoutes(window, directory, { importReview: review })).toBe(true);
-    expect(report()).toHaveLength((routeIds.length + 1) * 4);
+    expect(await captureRoutes(window, directory, { importReview: review, pasteText: '가짜 입력' })).toBe(
+      true,
+    );
+    expect(report()).toHaveLength((routeIds.length + 2) * 4);
+    expect(
+      report()
+        .filter((r) => r.route === 'add-paste')
+        .map((r) => r.file),
+    ).toEqual([
+      'add-paste-light-1360x840.png',
+      'add-paste-light-1100x700.png',
+      'add-paste-dark-1360x840.png',
+      'add-paste-dark-1100x700.png',
+    ]);
+    expect(scripts.filter((s) => s.includes("sessionStorage.setItem('qb-capture-paste'"))).toHaveLength(4);
     expect(
       report()
         .filter((r) => r.route === 'import-review')

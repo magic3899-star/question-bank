@@ -13,6 +13,7 @@ export const routes = [
     icon: 'FilePlus2',
     description: '본문·예문·선지와 해설을 직접 입력합니다.',
   },
+  { id: 'edit', title: '문제 편집', icon: 'FilePlus2', description: '저장된 문제와 해설을 수정합니다.' },
   {
     id: 'generate',
     title: '시험 만들기',

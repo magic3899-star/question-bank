@@ -1,11 +1,13 @@
 import { BookOpen, Library } from 'lucide-react';
 import type { BankStats, ObjectiveNode } from '../../../shared/index';
-import { TreeNodes } from './TreeNodes';
+import { TreeNodes } from '../../components/index';
 interface ObjectiveTreeProps {
   stats?: BankStats;
   subject: string;
   objective: string;
   withoutObjective: boolean;
+  withoutExplanation: boolean;
+  setWithoutExplanation: (value: boolean) => void;
   tree: Record<string, ObjectiveNode[]>;
   filter: (subject: string, code?: string) => void;
   setWithoutObjective: (value: boolean) => void;
@@ -16,6 +18,8 @@ export function ObjectiveTree({
   subject,
   objective,
   withoutObjective,
+  withoutExplanation,
+  setWithoutExplanation,
   tree,
   filter,
   setWithoutObjective,
@@ -42,6 +46,14 @@ export function ObjectiveTree({
           }}
         />
         <span>학습목표 없음</span>
+      </label>
+      <label className={styles['check-filter']}>
+        <input
+          type="checkbox"
+          checked={withoutExplanation}
+          onChange={(e) => setWithoutExplanation(e.target.checked)}
+        />
+        <span>해설 없는 문제</span>
       </label>
       {stats?.bySubject.map((s) => (
         <section className={styles['subject-tree']} key={s.subject}>

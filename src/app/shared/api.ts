@@ -1,4 +1,11 @@
-import type { AssetData, Question } from '../../contracts/index';
+import type { AssetData, Diagnostic, Question } from '../../contracts/index';
+import type {
+  EditorParseResult,
+  ExplanationPair,
+  ParsedExplanation,
+  SaveRequest,
+  SaveResult,
+} from './editor';
 import type { ImportCommitResult, ImportOptions, ImportPatch, ImportReview } from './import';
 
 export const channels = {
@@ -11,6 +18,16 @@ export const channels = {
   bankTree: 'bank:objective-tree',
   bankGet: 'bank:get',
   bankDeleteMany: 'bank:delete-many',
+  bankValidate: 'bank:validate',
+  bankSave: 'bank:save',
+  bankDelete: 'bank:delete',
+  bankRestore: 'bank:restore',
+  bankCodes: 'bank:objective-codes',
+  bankExplanations: 'bank:apply-explanations',
+  assetsAdd: 'assets:add',
+  editorParse: 'editor:parse-text',
+  editorExplanations: 'editor:parse-explanations',
+  editorDirty: 'editor:dirty',
   importPickFiles: 'import:pick-files',
   importAnalyze: 'import:analyze',
   importCommit: 'import:commit',
@@ -53,6 +70,7 @@ export interface ListRequest {
   objectivePrefix?: string;
   text?: string;
   withoutObjective?: boolean;
+  withoutExplanation?: boolean;
   offset: number;
   limit: number;
 }
@@ -66,6 +84,12 @@ export interface QuestionDetail {
   assets: Record<string, AssetData>;
 }
 export interface QbApi {
+  editor: {
+    parseText(request: { text: string; subject: string }): Promise<Result<EditorParseResult>>;
+    parseExplanations(request: { text: string }): Promise<Result<ParsedExplanation[]>>;
+    setDirty(dirty: boolean): Promise<Result<void>>;
+  };
+  assets: { add(request: { bytes: Uint8Array; mime: string }): Promise<Result<AssetData>> };
   import: {
     pickFiles(): Promise<Result<string[]>>;
     pathsForFiles(files: File[]): string[];
@@ -79,6 +103,12 @@ export interface QbApi {
     update(partial: Partial<Settings>): Promise<Result<Settings>>;
   };
   bank: {
+    validate(question: Question): Promise<Result<Diagnostic[]>>;
+    save(request: SaveRequest): Promise<Result<SaveResult>>;
+    delete(ids: string[]): Promise<Result<Question[]>>;
+    restore(questions: Question[]): Promise<Result<void>>;
+    objectiveCodes(subject: string): Promise<Result<string[]>>;
+    applyExplanations(request: { pairs: ExplanationPair[] }): Promise<Result<Question[]>>;
     stats(): Promise<Result<BankStats>>;
     list(request: ListRequest): Promise<Result<{ items: QuestionSummary[]; total: number }>>;
     objectiveTree(subject: string): Promise<Result<ObjectiveNode[]>>;

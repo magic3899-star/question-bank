@@ -1,0 +1,4 @@
+.preview {
+  display: flex;
+  height: var(--detail-width);
+}

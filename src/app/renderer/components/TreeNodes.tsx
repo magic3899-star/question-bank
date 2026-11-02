@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react';
-import type { ObjectiveNode } from '../../../shared/index';
+import type { ObjectiveNode } from '../../shared/index';
 import styles from './TreeNodes.module.css';
 export function TreeNodes({
   nodes,

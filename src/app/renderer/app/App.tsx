@@ -3,7 +3,7 @@ import { FolderOpen } from 'lucide-react';
 import type { Settings, Theme } from '../../shared/index';
 import { Button, Dialog, ErrorState, Spinner, Toast } from '../components/index';
 import { useApi, useReadySignal } from '../hooks/index';
-import { unwrap } from '../lib/index';
+import { unwrap, isNavigationGuarded, setNavigationGuard, navigate } from '../lib/index';
 import { routes } from './routes';
 import { parseHash } from './router';
 import { Sidebar } from './Sidebar';
@@ -22,16 +22,28 @@ export function App() {
   const error = settingsApi.error || infoApi.error || info?.startupError || '';
   const [collapsed, setCollapsed] = useState(false);
   const [toast, setToast] = useState<{ message: string; undo?: () => void }>();
+  const [pendingNavigation, setPendingNavigation] = useState<string>();
   const [about, setAbout] = useState(false);
   const closeToast = useCallback(() => setToast(undefined), []);
   useEffect(() => {
     const onHash = () => {
+      if (isNavigationGuarded() && !document.documentElement.dataset.captureTheme) {
+        const next = location.hash.replace(/^#\/?/u, '');
+        history.replaceState(null, '', `#/${hash.route}?${hash.query}`);
+        setPendingNavigation(next);
+        return;
+      }
       delete document.body.dataset.ready;
       setHash(parseHash());
     };
+    const request = (event: Event) => setPendingNavigation((event as CustomEvent<string>).detail);
     window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
-  }, []);
+    window.addEventListener('qb-navigation-request', request);
+    return () => {
+      window.removeEventListener('hashchange', onHash);
+      window.removeEventListener('qb-navigation-request', request);
+    };
+  }, [hash]);
   useTheme(settings?.theme, `${hash.route}?${hash.query}`);
   useShortcuts(hash.route, toast?.undo);
   useReadySignal(hash.route, false, error, !!error);
@@ -108,6 +120,22 @@ export function App() {
         </main>
       </div>
       {toast && <Toast message={toast.message} undo={toast.undo} close={closeToast} />}{' '}
+      {pendingNavigation && (
+        <Dialog title="저장하지 않은 변경이 있습니다" close={() => setPendingNavigation(undefined)}>
+          <p>다른 화면으로 이동하면 입력한 변경을 잃습니다.</p>
+          <Button
+            variant="danger"
+            onClick={() => {
+              setNavigationGuard(false);
+              navigate(pendingNavigation);
+              setPendingNavigation(undefined);
+            }}
+          >
+            변경을 버리고 이동
+          </Button>
+          <Button onClick={() => setPendingNavigation(undefined)}>계속 편집</Button>
+        </Dialog>
+      )}
       {about && (
         <Dialog title="문제은행" close={() => setAbout(false)}>
           <p>버전 {info?.version}</p>

@@ -14,3 +14,12 @@
   background: var(--text-muted);
   opacity: var(--dialog-opacity);
 }
+.dialog textarea {
+  width: 100%;
+  min-height: var(--header-height);
+  color: var(--text);
+  background: var(--surface);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+}
