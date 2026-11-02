@@ -11,19 +11,21 @@
 | 4C | 해설에 선지 번호가 있으면 선지 고정(실제 33문제), Word/HTML/Excel 레이아웃 | 완료·검수 (실제 Word·Excel 로 열어 확인) |
 | 5A | Electron 앱 뼈대·홈·문제은행(보기)·캡처 모드·설치 파일 설정 | 완료·검수 |
 | 5A2 | 화면 코드 구조 개편(화면·컴포넌트별 파일, CSS Modules, 화면 간 import 금지), 다크 대비 | 완료·검수 (실제 문제 DB 로 32개 화면 캡처) |
-| 5B | 해석 규칙 공용화(layout-parser), 붙여넣기 해석, **가져오기 화면** | 진행 중 → 검수 필요 |
-| 5C | 문제 추가·편집 화면(붙여넣기 자동 분리, 해설 따로 붙이기) | 예정 |
-| 5D | 시험 만들기 마법사·출제 규칙 편집기·출제 이력·파일 저장(printToPDF) | 예정 |
+| 5B | 해석 규칙 공용화(layout-parser), 붙여넣기 해석, 가져오기 화면 | 완료·검수 (실제 문서 결과 동일, 검수 표 화면 확인) |
+| 5C·5C2 | 문제 추가·편집 화면, PDF 붙여넣기 자동 분리, 해설 따로 붙이기, 디자인 시스템 정리 | 완료·검수 (PDF식 글로 확인) |
+| 5D1 | 출제 규칙 편집기 + 시험 만들기 마법사 + 문제 바꾸기·회차 다시 뽑기 | **Codex 사용 한도로 중단(14시 전)** → 지시서 `docs/prompts/stage5d1.md` 로 다시 실행. 중간 작업은 `git stash` 에 보관(참고용) |
+| 5D2 | 파일 저장(실제 printToPDF)·출제 이력·홈 최근 시험 | 지시서 준비됨 `docs/prompts/stage5d2.md` (실행 전 계약에 `history.delete`·`snapshots.delete` 추가 필요) |
 | 5E | 설정(백업·복원)·자동 업데이트·설치 파일·깨끗한 PC 시험 | 예정 |
 
 ## 다음 세션 순서
 
-### 1. 5B 검수
-- `npm test`(전체 약 1분 30초), `npm run typecheck`, `npm run lint:deps`, `npm run format:check`, `npm run build`.
-- **기존 docx 테스트 기대값이 바뀌지 않았는지**(layout-parser 리팩터링이 동작을 바꾸지 않았다는 증거): `git diff` 로 `src/modules/importers/docx/*.test.ts` 확인.
-- 실제 문서로: `.tmp-realcheck/run.ts`(법규 228·해부 86 그대로인지), 그리고 캡처 확장(`QB_CAPTURE_IMPORT_FILES`)으로 가져오기 검수 표 화면 확인.
+### 1. 5D1 다시 실행 → 검수
+- Codex 한도가 풀리면 `codex exec -s workspace-write -C <프로젝트> - < docs/prompts/stage5d1.md` (백그라운드 작업 자체로 실행).
+- 검수: 전체 테스트·typecheck·lint:deps·format:check·build, 그리고 실제 문제 DB 로 `QB_CAPTURE_GENERATE_RULE`(프리셋 법규) 캡처 → 결과 미리보기·규칙 편집기 화면 확인. 문제 바꾸기 후에도 4개 회차 간 겹침·같은 지문·중단원 규칙이 지켜지는지 `.tmp-realcheck` 스크립트로 확인.
 
-### 2. 5C → 5D → 5E (지시서는 `docs/prompts/` 에 단계별로 작성)
+### 2. 5D2 → 5E
+- 5D2 실행 전 계약(`src/contracts/index.ts`)에 `HistoryRepository.delete(examIds)`, `SnapshotRepository.delete(examIds)` 추가.
+- 5D2 검수의 핵심: 캡처 모드 `QB_CAPTURE_EXPORT_DIR` 로 **실제 printToPDF 결과 PDF** 를 만들고 `office2png.ps1` 방식(Windows.Data.Pdf)으로 그림으로 확인.
 
 ### 3. 한글(HWPX) 저장 스파이크 (5단계 이후)
 - 후보: kordoc(`markdownToHwpx`), airmang/hwpx-plugins. 이미지·밑줄·표 보존과 Windows 한글에서 열림 확인. 통과하면 `exporters/hwpx` 플러그인.

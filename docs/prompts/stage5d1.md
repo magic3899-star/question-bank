@@ -7,6 +7,9 @@
 - 먼저 AGENTS.md, docs/ARCHITECTURE.md(§3·§4·§5·§8-1·§11), docs/DESIGN.md(§4.4 시험 만들기·§4.5 규칙 편집기), src/contracts/index.ts, docs/STAGE3*.md·STAGE4A.md·STAGE5*.md, `src/modules/{rules,selector,constraints,shuffler,generation,exam-snapshot,render-html}/**`, `src/app/**` 를 `Get-Content -Encoding UTF8` 로 읽어라. 계약 수정 금지(필요하면 보고서에 요청). 실제 문제 파일·`.tmp-realcheck/` 접근 금지. 네트워크 설치 금지. Electron 실행·캡처 금지(검수자가 함).
 - 마무리 전 `npm.cmd test`(전체), `typecheck`, `lint:deps`, `format`→`format:check`, `build` 모두 통과.
 
+## 5D1-0. 작은 수정 (5C2 검수에서 발견)
+`importers/text/cleanup.ts` 의 반복 머리글 감지가 너무 민감하다: 문서에 **두 번 이상** 나오는 줄을 머리글로 의심해 잇지 않는데, 변형 문제의 해설처럼 같은 문장이 두 번 나오는 정상 내용을 오인한다(실제로 해설 2·3번의 잘린 줄이 이어지지 않음). 기준을 **"공백 제외 40자 이하의 짧은 줄이 3번 이상 반복"** 으로 높이고, 의심되더라도 **줄 잇기는 막지 말고 경고(`PDF_ARTIFACT_SUSPECTED`)만** 내라. 테스트: 같은 긴 문장이 두 번 나오는 해설은 정상 잇기, 짧은 머리글 3회 반복은 경고.
+
 ## 5D1-1. generation 모듈 확장 (순수, 테스트 필수)
  a. `replaceQuestion(input, deps)`: 이미 만든 한 번의 실행(run: 회차별 `SelectedExam`, 섞기 후)에서 **한 회차의 한 문제만 다른 문제로 교체**. 같은 슬롯의 후보 중 모든 제약(`filterCandidates` — state: 다른 회차들 = chosenSoFar, 이 회차의 나머지 문제 = currentChosen, 슬롯 = 같은 슬롯의 나머지 + 정적 풀)을 통과하는 문제를 rng 로 고른다. 다른 문제들의 순서·선지 순서는 **그대로**, 새 문제는 원래 자리(같은 번호)에 들어가고 선지는 섞기 규칙(lock·고정 존중)대로. 후보가 없으면 변경 없이 진단(`NO_REPLACEMENT`: 이유 — 어떤 제약이 후보를 줄였는지)으로 알림. 빈 번호 자리를 채우는 데도 쓸 수 있게(빈 번호 → 문제) 지원.
  b. `regenerateExam(input, deps)`: **한 회차만 다시 뽑기**. 다른 회차는 그대로 두고, 그 회차를 새 시드로 다시 선택·섞기(다른 회차의 문제·지문과 겹치지 않음).
