@@ -121,7 +121,7 @@ src/app/renderer/          React UI. 미리보기는 render-html 을 직접 사�
 ```
 - 보안: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, 외부 URL 탐색·새 창 차단, CSP.
 - 데이터 위치: `%APPDATA%/QuestionBank/` (`data/bank.sqlite`, `settings.json`, `backups/`). 개발·검수 시 `QB_DATA_DIR` 로 다른 폴더 지정.
-- **SQLite 네이티브 모듈**: better-sqlite3 는 Node(테스트)용과 Electron(앱)용 빌드가 다르다(ABI). `node_modules` 의 빌드는 Node 용으로 두고, Electron 용 `better_sqlite3.node` 는 `native/electron/` 에 따로 받아 두며, Electron 에서 실행될 때만 `openStorage(..., { nativeBinding })` 로 지정한다. electron-builder 는 `npmRebuild: false` + 이 파일을 함께 포장.
+- **SQLite 네이티브 모듈**: better-sqlite3 13 은 Node-API(N-API) 바이너리(`prebuilds/win32-x64.node`)를 패키지에 포함한다. Node-API 는 ABI 가 안정적이라 **테스트(Node 22)와 앱(Electron 45, 내장 Node 24)이 같은 파일**을 쓴다(2026-11-02 실제 확인). 재빌드 불필요: electron-builder `npmRebuild: false`, asar 에서는 better-sqlite3 를 풀어 둔다(`asarUnpack`). electron-vite 는 의존성을 번들하지 않고 외부화한다.
 - 검수용 캡처 모드: `QB_CAPTURE_DIR` 가 지정되면 모든 화면을 차례로 열어 PNG 로 저장하고 종료(디자인 검수 자동화).
 - PDF: 숨은 BrowserWindow 에 render-html 결과를 넣고 `webContents.printToPDF` → `createPdfExporter` 의 `PdfRenderer` 로 주입.
 - 시험지 글꼴: Windows 기본 `바탕`·`맑은 고딕`(Word 출력과 동일). UI 글꼴: Pretendard(번들, OFL).

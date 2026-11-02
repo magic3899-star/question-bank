@@ -5,22 +5,24 @@
 ## 실행 방식 (중요)
 - 계획만 말하고 멈추지 마라. 구현하고 검사를 통과시킨 뒤에만 최종 보고하라. 사용자에게 묻지 마라.
 - 먼저 AGENTS.md, docs/ARCHITECTURE.md(**§3 의존 규칙의 app 계층, §8-1 앱 계층**), docs/DESIGN.md(전체), src/contracts/index.ts, docs/STAGE1.md(storage), docs/STAGE4B.md·STAGE4C.md(출력) 를 `Get-Content -Encoding UTF8` 로 읽어라. `npm.cmd`/`npx.cmd`.
-- **이미 설치된 패키지만 쓴다(네트워크 설치 금지)**: electron, electron-vite, vite, @vitejs/plugin-react, react, react-dom, @types/react, @types/react-dom, electron-builder, lucide-react, pretendard. 더 필요하면 보고서에 적고 대안으로.
+- **이미 설치된 패키지만 쓴다(네트워크 설치 금지)**: electron 45.2.1, electron-vite 6.0.0, vite 7.3.7, @vitejs/plugin-react 5.2.0, react/react-dom 19.3.1, @types/react·@types/react-dom, electron-builder 26.18.0, lucide-react, pretendard 1.3.9, better-sqlite3 13.0.3. **vite 를 8 로 올리지 마라**(vitest 3 과 충돌). 더 필요하면 보고서에 적고 대안으로.
 - 계약(`src/contracts/index.ts`) 수정 금지. 실제 문제 파일(문제 디비/, 규칙.docx), `.tmp-realcheck/` 접근 금지. 앱을 실제로 띄워 보는 것은 해도 되지만(Electron 실행) 데이터는 임시 폴더(`QB_DATA_DIR`)의 가짜 데이터로만.
 - 작업 중 `npm.cmd run test:fast`, 마무리 전 `npm.cmd test`(전체)·`npm.cmd run typecheck`·`npm.cmd run lint:deps` 모두 통과. 그리고 `npm.cmd run build` 성공.
+
+## 5A-0. 작은 수정 (4C 실제 Excel 검수에서 발견)
+- `exporters/xlsx` 의 행 높이 추정이 한글을 영문 한 글자 폭으로 세서 줄 수를 적게 잡는다 → 실제 Excel 에서 일부 셀(긴 예문·문제)의 마지막 줄이 잘린다. **전각 문자(한글·한자·원문자 등 East Asian Wide/Fullwidth)는 2칸, 그 외는 1칸**으로 세어 열 너비 대비 줄 수를 계산하고, 줄 높이는 글꼴 크기에 맞게 약간 여유(약 1.25배)를 둬라. 테스트: 한글 긴 문장 셀의 행 높이가 줄 수 × 줄 높이 이상.
 
 ## 5A-1. 빌드 도구
 - `electron.vite.config.ts`: main(`src/app/main/index.ts`), preload(`src/app/preload/index.ts`), renderer(`src/app/renderer/index.html`, React). 출력 `out/`.
 - TypeScript: 기존 루트 tsconfig(모듈·테스트)는 유지하고, renderer 용(DOM lib, `jsx: react-jsx`)과 main/preload 용 설정을 분리해 `npm run typecheck` 가 **모두** 검사하게 하라(예: `tsc -p tsconfig.json && tsc -p tsconfig.web.json && tsc -p tsconfig.node.json`).
-- scripts: `dev`(electron-vite dev), `build`(electron-vite build), `app`(빌드 결과 실행: electron-vite preview), `dist`(build 후 electron-builder --win nsis), `capture`(빌드 결과를 캡처 모드로 실행 — 5A-7).
+- scripts: `dev`(electron-vite dev), `build`(electron-vite build), `app`(빌드 결과 실행: electron-vite preview), `dist`(build 후 electron-builder --win nsis), `capture`(빌드 결과를 캡처 모드로 실행 — 5A-6).
 - `.dependency-cruiser.cjs` 에 ARCHITECTURE §3 의 app 계층 규칙을 추가: `app/shared → contracts` 만, `app/preload → app/shared`, `app/renderer → app/shared, contracts, content-model, render-html, objective-code` 만(특히 **renderer 가 storage·importers·exporters·generation·node:* 를 import 하면 실패**), `app/main → 전부`. 임시 위반으로 작동 확인 후 삭제. vitest 는 renderer 를 테스트하지 않아도 되지만 main 서비스는 테스트한다.
 
-## 5A-2. SQLite 네이티브 모듈 (Node 용 / Electron 용 분리)
-배경: better-sqlite3 는 Node(테스트)와 Electron(앱)의 ABI 가 달라 빌드가 다르다. `node_modules` 의 빌드는 테스트용으로 그대로 둔다.
-- `src/modules/storage`: `StorageOptions` 에 `nativeBinding?: string` 추가 → `new Database(path, { nativeBinding })`. 테스트(옵션 없이 기존 동작, 잘못된 경로면 한국어 오류).
-- `scripts/fetch-electron-sqlite.mjs`: 설치된 electron 버전과 better-sqlite3 버전을 읽어, `prebuild-install`(better-sqlite3 의 의존성으로 이미 있음)로 **Electron 용 Windows x64 바이너리**를 임시 폴더에 받아 `native/electron/better_sqlite3.node` 로 복사하는 스크립트. (네트워크가 필요하므로 **너는 실행하지 말고** 작성만 하라. 검수자가 실행한다.) 실패 시 한국어로 원인·해결 안내. `native/` 는 .gitignore 에 추가(빌드 산출물).
-- main: Electron 에서 실행될 때 `native/electron/better_sqlite3.node`(개발) 또는 `process.resourcesPath/native/better_sqlite3.node`(설치본) 를 찾아 `nativeBinding` 으로 전달. 파일이 없으면 화면에 "DB 모듈을 찾을 수 없습니다 — `npm run fetch:sqlite` 를 실행하세요"(개발) / "설치가 손상되었습니다 — 다시 설치하세요"(설치본) 오류 화면을 보여주고 종료하지 않는다.
-- scripts 에 `fetch:sqlite` 추가.
+## 5A-2. SQLite (재빌드 불필요 — 확인됨)
+- better-sqlite3 는 13.0.3 으로 올렸다. Node-API 바이너리를 패키지에 포함하므로 **테스트(Node 22)와 Electron 45 가 같은 바이너리**를 쓴다(검수자가 두 환경에서 실제 실행 확인). 네이티브 재빌드·별도 다운로드 스크립트를 만들지 마라.
+- electron-vite 설정에서 main/preload 의 의존성은 외부화(`externalizeDepsPlugin`)해서 better-sqlite3 를 번들하지 않게 하라.
+- electron-builder: `npmRebuild: false`, `asar: true`, `asarUnpack: ["**/node_modules/better-sqlite3/**"]`(`.node` 는 asar 안에서 로드 불가).
+- main 에서 DB 를 열지 못하면(파일 권한, 손상 등) 앱이 그냥 죽지 말고 한국어 오류 화면(원인, 데이터 폴더 열기 버튼, 백업에서 복원 안내)을 보여 준다.
 
 ## 5A-3. 앱 계층 구조
 ```
@@ -65,10 +67,10 @@ src/app/renderer/          React UI
 - 데이터 준비 스크립트 `scripts/dev-seed.ts <dataDir>`: tests/fixtures 의 **가짜 문제**로 지정 폴더에 DB 를 만든다(과목 2개, 문제 300개, 일부 학습목표 없음·이미지·지문 포함). (검수자는 실제 문제로 따로 채운다.)
 
 ## 5A-7. 설치 파일 설정 (electron-builder)
-- 설정 파일(electron-builder.yml 또는 package.json "build"): appId `kr.publisher.questionbank`, productName `문제은행`, 실행 파일/설치 파일 이름은 영문 `QuestionBank`(예: `QuestionBank-Setup-${version}.exe`), Windows x64 NSIS(사용자별 설치, 설치 폴더 선택 가능, 바탕화면·시작 메뉴 바로 가기 이름 "문제은행"), `npmRebuild: false`, `asar: true`, `native/electron/better_sqlite3.node` 를 `extraResources` 로 `native/` 에 포함, 아이콘 자리(`build/icon.ico` 없으면 기본).
+- 설정 파일(electron-builder.yml 또는 package.json "build"): appId `kr.publisher.questionbank`, productName `문제은행`, 실행 파일/설치 파일 이름은 영문 `QuestionBank`(예: `QuestionBank-Setup-${version}.exe`), Windows x64 NSIS(사용자별 설치, 설치 폴더 선택 가능, 바탕화면·시작 메뉴 바로 가기 이름 "문제은행"), `npmRebuild: false`, `asar: true` + better-sqlite3 asarUnpack(5A-2), 아이콘 자리(`build/icon.ico` 없으면 기본).
 - `publish` 는 GitHub(owner `magic3899-star`, repo `question-bank`)로 설정만 해 두고 자동 업데이트 코드는 5D 에서.
-- 실제 `dist` 실행은 하지 않아도 된다(검수자가 네이티브 파일을 받은 뒤 실행). 설정이 유효한지만 확인 가능한 범위에서.
+- `npm.cmd run dist` 를 실제로 실행해 설치 파일이 만들어지는지 확인하라(electron-builder 가 NSIS 도구 등을 내려받아야 해서 네트워크가 막혀 실패하면, 실패 메시지를 그대로 보고하고 넘어가라 — 검수자가 실행한다).
 
 ## 마무리
-- `docs/STAGE5A.md`: 구조, 실행 방법(dev/build/app/capture/fetch:sqlite/dist), 데이터 위치, 보안 설정, 캡처 모드 사용법, 한계와 다음 단계(5B: 가져오기·문제 추가·편집, 5C: 시험 만들기·규칙·이력·출력, 5D: 백업·업데이트·배포).
+- `docs/STAGE5A.md`: 구조, 실행 방법(dev/build/app/capture/dist), 데이터 위치, 보안 설정, 캡처 모드 사용법, 한계와 다음 단계(5B: 가져오기·문제 추가·편집, 5C: 시험 만들기·규칙·이력·출력, 5D: 백업·업데이트·배포).
 - `npm.cmd test`(전체), `npm.cmd run typecheck`(모든 tsconfig), `npm.cmd run lint:deps`, `npm.cmd run build` 모두 통과. AGENTS.md 최종 보고 형식(계약 변경 요청 포함).
