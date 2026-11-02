@@ -64,9 +64,9 @@ function assertResult(input: SelectedExam, output: SelectedExam, options: Shuffl
   }
 }
 
-export function assertShufflerInvariants(shuffler: Shuffler, seedCount = 500): void {
+export function assertShufflerInvariants(shuffler: Shuffler, seedCount = 500, seedStart = 0): void {
   let different = 0;
-  for (let seed = 0; seed < seedCount; seed++) {
+  for (let seed = seedStart; seed < seedStart + seedCount; seed++) {
     for (const count of [0, 1, 2, 20]) {
       const exam = deepFreeze(randomExam(seed, count));
       const before = structuredClone(exam);

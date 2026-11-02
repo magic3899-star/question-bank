@@ -1,14 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { Shuffler } from '../../src/contracts/index';
 import { shufflers } from '../../src/modules/shuffler/index';
 import { assertShufflerInvariants } from './assertShufflerInvariants';
 
 export { assertShufflerInvariants } from './assertShufflerInvariants';
 
+// 시드 500개를 한 테스트에서 동기로 돌리면 vitest 워커가 수십 초 막혀 RPC 시간 초과가 나므로 묶음으로 나눈다.
+const SEED_TOTAL = 500;
+const SEED_CHUNK = 25;
+
 describe('등록된 모든 섞기 플러그인의 불변 조건', () => {
-  for (const shuffler of shufflers) it(`${shuffler.id}: 500개 시드 × 4개 문항 수 × 8개 옵션`, () => {
-    assertShufflerInvariants(shuffler);
-  }, 120000);
+  // 무거운 동기 테스트 사이에 이벤트 루프를 돌려 vitest RPC 응답(60초 제한)이 처리되게 한다.
+  beforeEach(() => new Promise<void>((resolve) => { setImmediate(resolve); }));
+  for (const shuffler of shufflers) {
+    for (let start = 0; start < SEED_TOTAL; start += SEED_CHUNK) {
+      it(`${shuffler.id}: 시드 ${start}~${start + SEED_CHUNK - 1} × 4개 문항 수 × 8개 옵션`, () => {
+        assertShufflerInvariants(shuffler, SEED_CHUNK, start);
+      }, 60000);
+    }
+  }
 });
 
 describe('불변 조건 검사 자체의 메타 테스트', () => {

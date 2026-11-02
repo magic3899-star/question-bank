@@ -31,7 +31,8 @@
 
 ## 명령
 
-- `npm test` — 전체 테스트
+- `npm test` — 전체 테스트 (약 1분 30초. 종단 무결성·불변 조건 테스트 포함)
+- `npm run test:fast` — 작업 중 빠른 확인용(무거운 `tests/e2e`, `tests/invariants` 제외). **마무리 전에는 반드시 `npm test` 전체를 통과시킨다.**
 - `npm run lint:deps` — 의존 규칙 검사 (dependency-cruiser)
 - `npm run typecheck` — tsc --noEmit
 - 작업 완료 전에 위 3개를 모두 통과시킨다.

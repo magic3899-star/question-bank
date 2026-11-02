@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { ExamSnapshot } from '../../src/contracts/index';
 import { standardConstraints } from '../../src/modules/constraints/index';
 import { createSelector } from '../../src/modules/selector/index';
@@ -39,9 +39,16 @@ async function exportAll(snapshot: ExamSnapshot) {
   return { docx: docx[0].data, xlsx: xlsx[0].data, html: new TextDecoder().decode(pdf[0].data) };
 }
 
+// 시드 30개를 한 테스트에서 돌리면 워커가 오래 막히므로 5개씩 나눈다.
+const EXPORT_SEED_TOTAL = 30;
+const EXPORT_SEED_CHUNK = 5;
+
 describe('생성 → Word/Excel/PDF 출력 종단 무결성', () => {
-  it('30개 시드·2과목·60개 확정본을 번호별 대조하고 서식·이미지·표·결정성을 검증한다', async () => {
-    for (let seed = 0; seed < 30; seed++) for (const snapshot of generate(seed)) {
+  // 무거운 동기 테스트 사이에 이벤트 루프를 돌려 vitest RPC 응답(60초 제한)이 처리되게 한다.
+  beforeEach(() => new Promise<void>((resolve) => { setImmediate(resolve); }));
+  const chunkStarts = Array.from({ length: EXPORT_SEED_TOTAL / EXPORT_SEED_CHUNK }, (_, index) => index * EXPORT_SEED_CHUNK);
+  it.each(chunkStarts)('시드 %i부터 5개·2과목 확정본을 번호별 대조하고 서식·이미지·표·결정성을 검증한다', async (start) => {
+    for (let seed = start; seed < start + EXPORT_SEED_CHUNK; seed++) for (const snapshot of generate(seed)) {
       const before = JSON.stringify(snapshot);
       const first = await exportAll(deepFreeze(snapshot));
       await assertExportMatchesSnapshot(snapshot, first);
@@ -51,7 +58,7 @@ describe('생성 → Word/Excel/PDF 출력 종단 무결성', () => {
       expect(second.html).toBe(first.html);
       expect(JSON.stringify(snapshot)).toBe(before);
     }
-  }, 240_000);
+  }, 60_000);
 
   it.each(['지문 한 글자 변경', '정답 라벨 이동'])('출력 검사기가 고의 훼손을 탐지한다: %s', async (kind) => {
     const original = generate(0)[0];

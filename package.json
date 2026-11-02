@@ -5,7 +5,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "lint:deps": "node .dependency-cruiser-runner.cjs --config .dependency-cruiser.cjs src tests"
+    "lint:deps": "node .dependency-cruiser-runner.cjs --config .dependency-cruiser.cjs src tests",
+    "test:fast": "vitest run --exclude \"tests/e2e/**\" --exclude \"tests/invariants/**\""
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.12",

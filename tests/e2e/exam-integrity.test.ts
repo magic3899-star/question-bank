@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { Block, ExamSnapshot } from '../../src/contracts/index';
 import { canonicalJson, questionContentKey, sha256Hex } from '../../src/modules/content-model/index';
 import { standardConstraints } from '../../src/modules/constraints/index';
@@ -34,11 +34,18 @@ function assertRun(snapshots: ExamSnapshot[]): void {
   expect(new Set(keys).size).toBe(keys.length);
 }
 
+// 시드 100개를 한 테스트에서 동기로 돌리면 vitest 워커가 1분 넘게 막혀 RPC 시간 초과가 나므로 묶음으로 나눈다.
+const SEED_TOTAL = 100;
+const SEED_CHUNK = 10;
+
 describe('선택 → 섞기 → 확정본 종단 무결성', () => {
-  it('2과목 300문제 은행을 100개 시드로 생성하고 원본·정답·고정 위치·재현성을 검증한다', () => {
-    const seen = new Set<string>();
+  // 무거운 동기 테스트 사이에 이벤트 루프를 돌려 vitest RPC 응답(60초 제한)이 처리되게 한다.
+  beforeEach(() => new Promise<void>((resolve) => { setImmediate(resolve); }));
+  const seen = new Set<string>();
+  const chunkStarts = Array.from({ length: SEED_TOTAL / SEED_CHUNK }, (_, index) => index * SEED_CHUNK);
+  it.each(chunkStarts)('2과목 300문제 은행, 시드 %i부터 10개: 원본·정답·고정 위치·재현성을 검증한다', (start) => {
     expect(bank.questions).toHaveLength(300);
-    for (let seed = 0; seed < 100; seed++) {
+    for (let seed = start; seed < start + SEED_CHUNK; seed++) {
       for (const subject of ['law', 'anatomy'] as const) {
         const data = deepFreeze(input(`integrity/${seed}`, subject));
         const before = JSON.stringify(data);
@@ -52,10 +59,14 @@ describe('선택 → 섞기 → 확정본 종단 무결성', () => {
         result.snapshots.flatMap((s) => s.items).forEach((item) => seen.add(item.sourceQuestionId));
       }
     }
+  }, 60_000);
+
+  it('시드 100개 전체에서 lock-all·복수 정답·고정 선지 문제가 실제로 검증 대상에 포함되었다', () => {
+    expect(seen.size).toBeGreaterThan(0);
     expect([...seen].some((id) => sources.get(id)!.shufflePolicy === 'lock-all')).toBe(true);
     expect([...seen].some((id) => sources.get(id)!.answerChoiceIds.length > 1)).toBe(true);
     expect([...seen].some((id) => sources.get(id)!.choices.some((c) => c.fixedPosition))).toBe(true);
-  }, 90_000);
+  });
 
   it('서로 다른 시드는 서로 다른 전체 확정본을 생성한다', () => {
     const first = generateExams(input('different/1'), deps);
