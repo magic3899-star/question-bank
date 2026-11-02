@@ -20,6 +20,12 @@ function textInput(value: unknown): string {
     throw new Error('붙여넣을 글자는 비어 있지 않은 200만 자 이하로 입력하세요.');
   return text;
 }
+function joinMode(value: unknown): 'space' | 'none' {
+  const mode = record(value).joinWrappedLinesWith;
+  if (mode !== undefined && mode !== 'space' && mode !== 'none')
+    throw new Error('줄바꿈 잇기 방식은 띄어쓰기로 또는 붙여서 중에서 선택하세요.');
+  return mode ?? 'space';
+}
 export function createEditorService(storage: Storage, options: { now: () => string; id?: () => string }) {
   const id = options.id ?? randomUUID;
   let saving = false;
@@ -142,6 +148,7 @@ export function createEditorService(storage: Storage, options: { now: () => stri
       if (typeof subject !== 'string' || !subject.trim()) throw new Error('과목을 선택한 뒤 해석하세요.');
       const parsed = parseQuestionText(text, {
         subject,
+        joinWrappedLinesWith: joinMode(value),
         includeGrades: null,
         requireObjective: false,
         dedupeByPassage: false,
@@ -171,14 +178,14 @@ export function createEditorService(storage: Storage, options: { now: () => stri
       };
     },
     parseExplanations(value: unknown): ParsedExplanation[] {
-      return parseExplanationText(textInput(value)).map((entry) => {
-        const text = blocksToPlainText(entry.explanation);
-        const answer = /정답\s*[:：]?\s*((?:[①-⑩]|\d+)(?:[\s,，]+(?:[①-⑩]|\d+))*)/u.exec(text)?.[1] ?? '';
-        const positions = [...answer.matchAll(/[①-⑩]|\d+/gu)].map((m) =>
-          '①②③④⑤⑥⑦⑧⑨⑩'.includes(m[0]) ? '①②③④⑤⑥⑦⑧⑨⑩'.indexOf(m[0]) + 1 : Number(m[0]),
-        );
-        return { ...entry, answerPositions: [...new Set(positions)] };
-      });
+      return parseExplanationText(textInput(value), { joinWrappedLinesWith: joinMode(value) }).map(
+        (entry) => {
+          const positions = (entry.answerLabels ?? []).map((label) =>
+            '①②③④⑤⑥⑦⑧⑨⑩'.includes(label) ? '①②③④⑤⑥⑦⑧⑨⑩'.indexOf(label) + 1 : Number(label),
+          );
+          return { ...entry, answerPositions: [...new Set(positions)] };
+        },
+      );
     },
     async applyExplanations(value: unknown): Promise<Question[]> {
       const { pairs } = record(value);

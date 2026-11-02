@@ -3,6 +3,7 @@ import type { Settings } from '../shared/index';
 
 export const defaultSettings: Settings = {
   theme: 'system',
+  pasteJoin: 'space',
   subjects: [
     { id: 'law', name: '법규' },
     { id: 'anatomy', name: '해부' },
@@ -11,11 +12,19 @@ export const defaultSettings: Settings = {
 };
 export function validateSettings(input: unknown): Partial<Settings> {
   const fail = (): never => {
-    throw new Error('설정 값이 올바르지 않습니다. 테마·과목·저장 폴더와 창 크기를 확인하세요.');
+    throw new Error(
+      '설정 값이 올바르지 않습니다. 테마·과목·저장 폴더·창 크기와 줄바꿈 잇기 방식을 확인하세요.',
+    );
   };
   if (!input || typeof input !== 'object' || Array.isArray(input)) return fail();
   const value = input as Record<string, unknown>;
-  if (Object.keys(value).some((key) => !['theme', 'subjects', 'defaultSaveDir', 'window'].includes(key)))
+  if (
+    Object.keys(value).some(
+      (key) => !['theme', 'subjects', 'defaultSaveDir', 'window', 'pasteJoin'].includes(key),
+    )
+  )
+    return fail();
+  if (value.pasteJoin !== undefined && value.pasteJoin !== 'space' && value.pasteJoin !== 'none')
     return fail();
   if (
     value.theme !== undefined &&

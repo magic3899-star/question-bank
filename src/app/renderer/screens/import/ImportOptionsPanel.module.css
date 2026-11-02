@@ -14,13 +14,6 @@
   display: grid;
   gap: var(--space-2);
 }
-.subject select {
-  min-height: var(--button-height);
-  border: var(--line) solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  padding: var(--space-2);
-}
 .option {
   display: flex;
   align-items: flex-start;

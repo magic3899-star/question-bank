@@ -9,7 +9,11 @@
   gap: var(--space-1);
 }
 .toolbar button {
-  background: var(--surface-2);
+  min-height: var(--button-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
   border: var(--line) solid var(--border);
   border-radius: var(--radius-sm);
   padding: var(--space-1) var(--space-2);
@@ -26,4 +30,13 @@
 }
 .input p {
   margin: 0;
+}
+
+.toolbar button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.toolbar button:hover {
+  background: var(--surface-2);
 }

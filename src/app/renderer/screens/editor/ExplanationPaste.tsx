@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import type { Question } from '../../../../contracts/index';
 import type { EditorParseResult, ParsedExplanation } from '../../../shared/index';
-import { blocksToPlainText } from '../../../../modules/content-model/index';
-import { autoPolicy, matchExplanations } from '../../lib/editor/index';
+import { autoPolicy, matchExplanations, explanationAnswerState } from '../../lib/editor/index';
 import { unwrap } from '../../lib/index';
+import { ExplanationMatches } from './ExplanationMatches';
 import { Button, Dialog } from '../../components/index';
 
 export function ExplanationPaste({
+  join,
   batch,
   question,
   position,
@@ -15,6 +16,7 @@ export function ExplanationPaste({
   update,
   error,
 }: {
+  join: 'space' | 'none';
   batch: EditorParseResult;
   question: Question;
   position: number;
@@ -26,7 +28,7 @@ export function ExplanationPaste({
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [parsed, setParsed] = useState<ParsedExplanation[]>();
-  const [answers, setAnswers] = useState(false);
+  const [answers, setAnswers] = useState<Record<number, boolean>>({});
   const [busy, setBusy] = useState(false);
   const questions = useMemo(
     () => batch.questions.map((q, i) => (i === position ? question : q)),
@@ -37,13 +39,20 @@ export function ExplanationPaste({
     if (!matched) return;
     setBusy(true);
     try {
-      if (
-        answers &&
-        matched.rows.some((row) =>
-          row.explanation?.answerPositions.some((n) => n < 1 || n > row.question.choices.length),
+      const applyAnswer = (index: number) => {
+        const row = matched.rows[index]!;
+        return (
+          !!row.explanation?.answerPositions.length &&
+          (answers[index] ?? explanationAnswerState(row.question, row.explanation).defaultApply)
+        );
+      };
+      for (const [index, row] of matched.rows.entries())
+        if (
+          applyAnswer(index) &&
+          row.explanation &&
+          explanationAnswerState(row.question, row.explanation).invalid
         )
-      )
-        throw new Error('해설 정답이 선지 범위를 벗어납니다. 번호를 확인하세요.');
+          throw new Error(`${row.number}번 해설 정답이 선지 범위를 벗어납니다. 번호를 확인하세요.`);
       const pairs = matched.rows
         .filter(
           (r, i) =>
@@ -53,12 +62,12 @@ export function ExplanationPaste({
           questionId: r.question.id,
           number: r.number,
           explanation: r.explanation!.explanation,
-          ...(answers && r.explanation!.answerPositions.length
+          ...(applyAnswer(matched.rows.indexOf(r)) && r.explanation!.answerPositions.length
             ? { answerPositions: r.explanation!.answerPositions }
             : {}),
         }));
       const saved = pairs.length ? await unwrap(window.qb.bank.applyExplanations({ pairs })) : [];
-      const next = questions.map((q) => {
+      const next = questions.map((q, index) => {
         const row = matched.rows.find((r) => r.question === q);
         if (!row?.explanation) return q;
         const persisted = saved.find((s) => s.id === q.id);
@@ -71,12 +80,12 @@ export function ExplanationPaste({
             updatedAt: persisted.updatedAt,
           };
         const positions = row.explanation.answerPositions;
-        if (answers && positions.some((n) => n < 1 || n > q.choices.length))
+        if (applyAnswer(index) && positions.some((n) => n < 1 || n > q.choices.length))
           throw new Error(`${row.number}번 해설 정답이 선지 범위를 벗어납니다. 확인하세요.`);
         return autoPolicy({
           ...q,
           explanation: row.explanation.explanation,
-          ...(answers && positions.length
+          ...(applyAnswer(index) && positions.length
             ? { answerChoiceIds: positions.map((n) => q.choices[n - 1]!.id) }
             : {}),
         });
@@ -103,6 +112,7 @@ export function ExplanationPaste({
               onChange={(e) => {
                 setText(e.target.value);
                 setParsed(undefined);
+                setAnswers({});
               }}
             />
           </label>
@@ -110,8 +120,11 @@ export function ExplanationPaste({
             disabled={busy || !text.trim()}
             onClick={() => {
               setBusy(true);
-              void unwrap(window.qb.editor.parseExplanations({ text }))
-                .then(setParsed)
+              void unwrap(window.qb.editor.parseExplanations({ text, joinWrappedLinesWith: join }))
+                .then((result) => {
+                  setParsed(result);
+                  setAnswers({});
+                })
                 .catch((cause: Error) => error(cause.message))
                 .finally(() => setBusy(false));
             }}
@@ -123,46 +136,16 @@ export function ExplanationPaste({
               <p>
                 이번 추가 묶음의 원래 번호로 짝을 맞춥니다. 일치하지 않거나 중복된 번호는 적용하지 않습니다.
               </p>
-              <table>
-                <thead>
-                  <tr>
-                    <th>번호</th>
-                    <th>문제</th>
-                    <th>해설</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {matched.rows.map((row, index) => (
-                    <tr key={index}>
-                      <td>{row.number}</td>
-                      <td>
-                        {blocksToPlainText(row.question.stem).slice(0, 60)} · {statuses[index] ?? '작성 중'}
-                      </td>
-                      <td>
-                        {row.ambiguous ? '중복 번호 — 확인 필요' : row.explanation ? '일치' : '해설 없음'}
-                        {row.explanation && (
-                          <p>
-                            {blocksToPlainText(row.explanation.explanation).slice(0, 100)}
-                            {row.explanation.answerPositions.length
-                              ? ` · 정답 ${row.explanation.answerPositions.join(', ')}번`
-                              : ''}
-                          </p>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <ExplanationMatches
+                matched={matched}
+                statuses={statuses}
+                answers={answers}
+                select={(index, checked) => setAnswers((previous) => ({ ...previous, [index]: checked }))}
+              />
               {matched.unmatched.map((e, i) => (
                 <p key={i}>{e.number}번: 짝이 없는 해설</p>
               ))}
               {!parsed?.length && <p>번호를 찾지 못했습니다. “1. 해설” 형식으로 입력하세요.</p>}
-              {parsed?.some((e) => e.answerPositions.length) && (
-                <label>
-                  <input type="checkbox" checked={answers} onChange={(e) => setAnswers(e.target.checked)} />
-                  해설에 있는 정답도 채울까요? 기존 정답을 바꿉니다.
-                </label>
-              )}
               <Button
                 disabled={busy || !matched.rows.some((r) => r.explanation)}
                 onClick={() => void apply()}

@@ -18,3 +18,5 @@ export { PreviewFrame } from './PreviewFrame';
 export { RichTextField } from './RichTextField';
 export { BlockListEditor } from './BlockListEditor';
 export { TreeNodes } from './TreeNodes';
+
+export { Select } from './Select';

@@ -18,6 +18,7 @@ export function BlockListEditor({
   onChange: (blocks: Block[]) => void;
   onAsset: (asset: AssetData) => void;
 }) {
+  const fileInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const current = useRef(value);
@@ -50,6 +51,17 @@ export function BlockListEditor({
       tabIndex={-1}
       className={styles.editor}
       aria-label={label}
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes('Files')) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        if (!event.dataTransfer.types.includes('Files')) return;
+        event.preventDefault();
+        const file = Array.from(event.dataTransfer.files).find(
+          (item) => item.type.startsWith('image/') || /\.bmp$/iu.test(item.name),
+        );
+        if (file) void addImage(file);
+      }}
       onPasteCapture={(event) => {
         const file = Array.from(event.clipboardData.items)
           .find((item) => item.kind === 'file' && item.type.startsWith('image/'))
@@ -185,21 +197,24 @@ export function BlockListEditor({
         >
           표 추가
         </Button>
-        <label>
+        <Button disabled={busy} onClick={() => fileInput.current?.click()}>
           이미지 추가
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/gif,image/webp,image/bmp"
-            disabled={busy}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void addImage(file);
-              e.target.value = '';
-            }}
-          />
-        </label>
+        </Button>
+        <input
+          ref={fileInput}
+          hidden
+          aria-label="이미지 파일 선택"
+          type="file"
+          accept="image/png,image/jpeg,image/gif,image/webp,image/bmp"
+          disabled={busy}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void addImage(file);
+            e.target.value = '';
+          }}
+        />
       </div>
-      <p>이미지는 이 영역에 붙여넣을 수 있습니다. PNG·JPG·GIF·WebP·BMP, 10MB 이하.</p>
+      <p>이미지는 이 영역에 끌어놓거나 붙여넣을 수 있습니다. PNG·JPG·GIF·WebP·BMP, 10MB 이하.</p>
       {busy && <p role="status">이미지를 확인하고 있습니다…</p>}
       {error && <p role="alert">{error}</p>}
     </section>

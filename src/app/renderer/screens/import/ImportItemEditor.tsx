@@ -1,6 +1,6 @@
 import type { ImportItem, ImportPatch } from '../../../shared/index';
 import { parseObjectiveCode } from '../../../../modules/objective-code/index';
-import { Input } from '../../components/index';
+import { Input, Select } from '../../components/index';
 import styles from './ImportItemEditor.module.css';
 
 export function ImportItemEditor({
@@ -23,15 +23,12 @@ export function ImportItemEditor({
         error={invalid ? '과목명과 숫자 구간으로 입력하세요. 예: 법규 1-1-3' : undefined}
         onChange={(e) => update({ objectiveCode: e.target.value })}
       />
-      <label>
-        등급
-        <select value={item.draft.grade ?? ''} onChange={(e) => update({ grade: e.target.value })}>
-          <option value="">등급 없음</option>
-          {[...new Set(['A', 'B', ...(item.draft.grade ? [item.draft.grade] : [])])].map((g) => (
-            <option key={g}>{g}</option>
-          ))}
-        </select>
-      </label>
+      <Select label="등급" value={item.draft.grade ?? ''} onChange={(e) => update({ grade: e.target.value })}>
+        <option value="">등급 없음</option>
+        {[...new Set(['A', 'B', ...(item.draft.grade ? [item.draft.grade] : [])])].map((g) => (
+          <option key={g}>{g}</option>
+        ))}
+      </Select>
       <label>
         <input
           type="checkbox"

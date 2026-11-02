@@ -3,7 +3,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserWindow } from 'electron';
-import { CAPTURE_COMPOSITOR_SETTLE_MS, captureDeadline, captureRoutes, writeCaptureFailure } from './capture';
+import {
+  prepareCaptureSize,
+  CAPTURE_PASTE_READY_TIMEOUT_MS,
+  CAPTURE_COMPOSITOR_SETTLE_MS,
+  captureDeadline,
+  captureRoutes,
+  writeCaptureFailure,
+} from './capture';
 import type { ImportReview } from '../shared/index';
 import { routeIds } from '../shared/index';
 
@@ -20,10 +27,40 @@ describe('검수 캡처 실행기', () => {
       waitMs: number;
       error: string | null;
     }[];
+  it('전체 화면·최대화 해제가 끝난 뒤 콘텐츠 크기를 맞춘다', async () => {
+    const calls: string[] = [];
+    const listeners = new Map<string, () => void>();
+    const window = {
+      isFullScreen: () => true,
+      isMaximized: () => true,
+      once: (event: string, callback: () => void) => listeners.set(event, callback),
+      setFullScreen: (value: boolean) => {
+        expect(value).toBe(false);
+        calls.push('fullscreen');
+      },
+      unmaximize: () => calls.push('unmaximize'),
+      setContentSize: (width: number, height: number) => {
+        expect([width, height]).toEqual([1100, 700]);
+        calls.push('size');
+      },
+    } as unknown as BrowserWindow;
+    const prepared = prepareCaptureSize(window, 1100, 700);
+    expect(calls).toEqual(['fullscreen']);
+    listeners.get('leave-full-screen')!();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(calls).toEqual(['fullscreen', 'unmaximize']);
+    listeners.get('unmaximize')!();
+    await prepared;
+    expect(calls).toEqual(['fullscreen', 'unmaximize', 'size']);
+    expect(CAPTURE_PASTE_READY_TIMEOUT_MS).toBe(60000);
+  });
   it('준비 신호 이후에만 공통 라우트×2테마×2크기를 저장한다', async () => {
     const size = vi.fn();
     const scripts: string[] = [];
     const window = {
+      isFullScreen: () => false,
+      isMaximized: () => false,
       setContentSize: size,
       webContents: {
         executeJavaScript: async (code: string) => {
@@ -55,15 +92,19 @@ describe('검수 캡처 실행기', () => {
   it('준비 시간 초과에는 PNG 없이 오류를 기록하고 실패를 반환한다', async () => {
     const capturePage = vi.fn();
     const window = {
+      isFullScreen: () => false,
+      isMaximized: () => false,
       setContentSize: vi.fn(),
       webContents: { executeJavaScript: async () => false, capturePage },
     } as unknown as BrowserWindow;
     expect(await captureRoutes(window, directory, { timeoutMs: 0 })).toBe(false);
     expect(capturePage).not.toHaveBeenCalled();
-    expect(report().every((row) => row.error?.includes('10초'))).toBe(true);
+    expect(report().every((row) => row.error?.includes('초'))).toBe(true);
   });
   it('화면 서비스 오류를 캡처 보고서에 포함한다', async () => {
     const window = {
+      isFullScreen: () => false,
+      isMaximized: () => false,
       setContentSize: vi.fn(),
       webContents: {
         executeJavaScript: async (code: string) =>
@@ -86,6 +127,8 @@ describe('검수 캡처 실행기', () => {
   it('가져오기 분석 결과가 있으면 검수 표 전달과 테마·크기별 추가 PNG를 기록한다', async () => {
     const scripts: string[] = [];
     const window = {
+      isFullScreen: () => false,
+      isMaximized: () => false,
       setContentSize: vi.fn(),
       webContents: {
         executeJavaScript: async (code: string) => {
@@ -134,11 +177,47 @@ describe('검수 캡처 실행기', () => {
     ).toHaveLength(4);
     expect(scripts.some((s) => s.includes('&captureReview=1'))).toBe(true);
   });
+  it('붙여넣기 해석·현재 미리보기가 10초를 넘어 준비돼도 기다린 후 캡처한다', async () => {
+    vi.useFakeTimers();
+    try {
+      let pastedAt: number | undefined;
+      let captures = 0;
+      const window = {
+        isFullScreen: () => false,
+        isMaximized: () => false,
+        setContentSize: vi.fn(),
+        webContents: {
+          executeJavaScript: async (code: string) => {
+            if (code.includes('location.hash'))
+              pastedAt = code.includes('&capturePaste=1') ? Date.now() : undefined;
+            if (code.includes('dataset.ready ==='))
+              return pastedAt === undefined || Date.now() - pastedAt >= 11000;
+            return '';
+          },
+          capturePage: async () => {
+            if (pastedAt !== undefined) {
+              expect(Date.now() - pastedAt).toBeGreaterThanOrEqual(11000);
+              captures++;
+            }
+            return { toPNG: () => Buffer.from('fake-png') };
+          },
+        },
+      } as unknown as BrowserWindow;
+      const result = captureRoutes(window, directory, { pasteText: '가짜 입력' });
+      await vi.runAllTimersAsync();
+      expect(await result).toBe(true);
+      expect(captures).toBe(4);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it.each(['navigation', 'ready', 'fonts', 'capture', 'errors'])(
     '%s 단계가 영원히 응답하지 않아도 보고서를 쓴다',
     async (stage) => {
       const never = new Promise<never>(() => {});
       const window = {
+        isFullScreen: () => false,
+        isMaximized: () => false,
         setContentSize: vi.fn(),
         webContents: {
           executeJavaScript: (code: string) => {

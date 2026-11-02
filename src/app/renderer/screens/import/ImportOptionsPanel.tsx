@@ -1,4 +1,5 @@
 import type { ImportOptions, Settings } from '../../../shared/index';
+import { Select } from '../../components/index';
 import styles from './ImportOptionsPanel.module.css';
 
 export function ImportOptionsPanel({
@@ -33,21 +34,19 @@ export function ImportOptionsPanel({
   return (
     <fieldset className={styles.options} disabled={disabled}>
       <legend>가져오기 옵션</legend>
-      <label className={styles.subject}>
-        과목 (필수)
-        <select
-          required
-          value={options.subject}
-          onChange={(e) => update({ ...options, subject: e.target.value })}
-        >
-          <option value="">과목을 선택하세요</option>
-          {subjects.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Select
+        label="과목 (필수)"
+        required
+        value={options.subject}
+        onChange={(e) => update({ ...options, subject: e.target.value })}
+      >
+        <option value="">과목을 선택하세요</option>
+        {subjects.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name}
+          </option>
+        ))}
+      </Select>
       {toggles.map((toggle) => (
         <label className={styles.option} key={toggle.id}>
           <input

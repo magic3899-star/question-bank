@@ -1,11 +1,16 @@
-import type { Block, ImportDraft, Importer } from '../../../contracts/index';
+import type { ImportDraft, Importer } from '../../../contracts/index';
 import { parseLayout, standardProfile, validateProfile } from '../../layout-parser/index';
 import type { LayoutOptions, LayoutProfile } from '../../layout-parser/index';
 import { cleanupPdf, normalizeLines } from './cleanup';
+import type { JoinWrappedLinesWith } from './cleanup';
+export { parseExplanationText } from './explanation';
+export type { ExplanationTextOptions, TextExplanation } from './explanation';
+export type { JoinWrappedLinesWith } from './cleanup';
 
 export interface TextOptions extends LayoutOptions {
   profile?: LayoutProfile;
   pdfCopyCleanup?: boolean;
+  joinWrappedLinesWith?: JoinWrappedLinesWith;
 }
 export function parseQuestionText(text: string, options: TextOptions): ImportDraft {
   const profile = options.profile ?? standardProfile;
@@ -27,7 +32,7 @@ export function parseQuestionText(text: string, options: TextOptions): ImportDra
   const cleaned =
     options.pdfCopyCleanup === false
       ? { lines: normalized, diagnostics: [] }
-      : cleanupPdf(normalized, profile);
+      : cleanupPdf(normalized, profile, options.joinWrappedLinesWith);
   const parsed = parseLayout(
     cleaned.lines.map((line) => ({
       block: { type: 'paragraph', runs: [{ text: line.text }] },
@@ -44,26 +49,6 @@ export function parseQuestionText(text: string, options: TextOptions): ImportDra
     passageGroups: [],
     diagnostics: [...parsed.diagnostics, ...cleaned.diagnostics],
   };
-}
-export function parseExplanationText(
-  text: string,
-  profile: LayoutProfile = standardProfile,
-): { number: string; explanation: Block[] }[] {
-  const errors = validateProfile(profile);
-  if (errors.length) throw new Error(`해설 양식 설정을 확인하세요. ${errors.join(' ')}`);
-  const pattern = new RegExp(
-    profile.explanationNumberPattern ?? standardProfile.explanationNumberPattern!,
-    'u',
-  );
-  const result: { number: string; explanation: Block[] }[] = [];
-  for (const line of normalizeLines(text)) {
-    const match = pattern.exec(line.text);
-    if (match?.[1]) result.push({ number: match[1], explanation: [] });
-    const content = match ? line.text.slice(match[0].length) : line.text;
-    if (result.length && content.trim())
-      result.at(-1)!.explanation.push({ type: 'paragraph', runs: [{ text: content }] });
-  }
-  return result;
 }
 export const textImporter: Importer = {
   kind: 'importer',

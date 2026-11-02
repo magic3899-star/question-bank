@@ -47,3 +47,18 @@ export function matchExplanations(questions: Question[], explanations: ParsedExp
     ),
   };
 }
+
+export function explanationAnswerState(question: Question, explanation: ParsedExplanation) {
+  const positions = explanation.answerPositions;
+  const invalid = positions.some((n) => !Number.isInteger(n) || n < 1 || n > question.choices.length);
+  const ids = positions.map((n) => question.choices[n - 1]?.id);
+  return {
+    defaultApply: !question.answerChoiceIds.length && positions.length > 0,
+    invalid,
+    conflict:
+      question.answerChoiceIds.length > 0 &&
+      positions.length > 0 &&
+      (ids.length !== question.answerChoiceIds.length ||
+        ids.some((id) => !id || !question.answerChoiceIds.includes(id))),
+  };
+}

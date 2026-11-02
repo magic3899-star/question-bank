@@ -1,6 +1,12 @@
 import type { Diagnostic } from '../../../contracts/index';
 import type { LayoutProfile } from '../../layout-parser/index';
 
+export type JoinWrappedLinesWith = 'space' | 'none';
+
+export function wrappedSeparator(previous: string, next: string, mode: JoinWrappedLinesWith): string {
+  return mode === 'space' || /[\p{P}>]$/u.test(previous) || /^[\p{Ps}<A-Za-z0-9]/u.test(next) ? ' ' : '';
+}
+
 export interface TextLine {
   text: string;
   sourceIndex: number;
@@ -15,6 +21,9 @@ export function normalizeLines(text: string): TextLine[] {
 export function cleanupPdf(
   lines: TextLine[],
   profile: LayoutProfile,
+  joinWrappedLinesWith: JoinWrappedLinesWith = 'space',
+  explanation = false,
+  sourceLines = lines,
 ): { lines: TextLine[]; diagnostics: Diagnostic[] } {
   const patterns = [
     profile.stemStartPattern,
@@ -23,14 +32,18 @@ export function cleanupPdf(
     profile.objectiveLinePattern,
     profile.sourceTagPattern,
   ].map((p) => new RegExp(p, 'u'));
+  const answerHead = /^\s*(?:\[정답\]|정답|답)\s*[:：]?\s*(?=[①-⑩]|\d)/u;
   const boundary = (text: string) =>
-    patterns.some((p) => p.test(text)) || profile.choiceMarkers.some((m) => text.trimStart().startsWith(m));
+    patterns.some((p) => p.test(text)) ||
+    answerHead.test(text) ||
+    profile.choiceMarkers.some((m) => text.trimStart().startsWith(m));
   const startsContent = (text: string) =>
+    (explanation && !answerHead.test(text)) ||
     new RegExp(profile.stemStartPattern, 'u').test(text) ||
     new RegExp(profile.explanationLabelPattern, 'u').test(text) ||
     profile.choiceMarkers.some((m) => text.trimStart().startsWith(m));
   const frequency = new Map<string, number>();
-  lines.forEach((l) => {
+  sourceLines.forEach((l) => {
     if (l.text.trim()) frequency.set(l.text.trim(), (frequency.get(l.text.trim()) ?? 0) + 1);
   });
   const diagnostics: Diagnostic[] = [];
@@ -52,7 +65,8 @@ export function cleanupPdf(
     const markers = [...text.matchAll(/[①-⑩]/gu)];
     const sequential = markers.length >= 2 && markers.every((m, i) => m[0] === profile.choiceMarkers[i]);
     // 라벨 뒤 원문자는 정답·해설의 참조일 수 있으므로 선지로 나누지 않는다.
-    const split = sequential && !patterns.slice(1).some((p) => p.test(text));
+    const split =
+      !explanation && !answerHead.test(text) && sequential && !patterns.slice(1).some((p) => p.test(text));
     const parts = split
       ? [
           text.slice(0, markers[0]!.index).trim(),
@@ -61,7 +75,8 @@ export function cleanupPdf(
       : [text];
     for (const part of parts) {
       if (part && !artifact && !boundary(part) && joinable && result.at(-1)?.text) {
-        result.at(-1)!.text += ` ${part}`;
+        const previous = result.at(-1)!;
+        previous.text += wrappedSeparator(previous.text, part, joinWrappedLinesWith) + part;
       } else {
         result.push({ text: part, sourceIndex: original.sourceIndex });
         joinable = !!part && !artifact && startsContent(part);

@@ -1,0 +1,25 @@
+.scroll {
+  overflow: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+  text-align: left;
+}
+.table th,
+.table td {
+  padding: var(--space-2);
+  border-bottom: var(--line) solid var(--border);
+  vertical-align: top;
+}
+.table tr:hover {
+  background: var(--accent-soft);
+}
+.warn {
+  color: var(--warn);
+}

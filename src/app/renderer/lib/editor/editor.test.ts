@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { autoPolicy, matchExplanations, newQuestion } from './index';
+import { explanationAnswerState, autoPolicy, matchExplanations, newQuestion } from './index';
 
 describe('편집기 작업 묶음', () => {
   it('계속 추가는 과목·학습목표·등급만 유지한다', () => {
@@ -46,5 +46,29 @@ describe('편집기 작업 묶음', () => {
         ],
       ).rows[0]?.ambiguous,
     ).toBe(true);
+  });
+});
+
+describe('해설 정답 적용 선택', () => {
+  it('빈 정답만 기본 선택하고 기존 정답의 불일치와 범위 오류를 구별한다', () => {
+    const question = newQuestion('fake');
+    const explanation = { number: '1', explanation: [], answerPositions: [3] };
+    expect(explanationAnswerState(question, explanation)).toEqual({
+      defaultApply: true,
+      conflict: false,
+      invalid: false,
+    });
+    expect(explanationAnswerState({ ...question, answerChoiceIds: ['c1'] }, explanation)).toEqual({
+      defaultApply: false,
+      conflict: true,
+      invalid: false,
+    });
+    expect(explanationAnswerState({ ...question, answerChoiceIds: ['c3'] }, explanation).conflict).toBe(
+      false,
+    );
+    expect(explanationAnswerState(question, { ...explanation, answerPositions: [] }).defaultApply).toBe(
+      false,
+    );
+    expect(explanationAnswerState(question, { ...explanation, answerPositions: [6] }).invalid).toBe(true);
   });
 });

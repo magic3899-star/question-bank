@@ -1,8 +1,17 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { Underline, Bold, Italic, Superscript, Subscript } from 'lucide-react';
 import type { Block } from '../../../contracts/index';
 import { blocksToEditor, editorHtml, editorToBlocks, replaceParagraphs } from '../lib/rich-text/index';
 import type { EditorNode } from '../lib/rich-text/index';
 import styles from './RichTextField.module.css';
+
+const formats = [
+  { name: 'underline', label: '밑줄', shortcut: 'Ctrl+U', icon: Underline },
+  { name: 'bold', label: '굵게', shortcut: 'Ctrl+B', icon: Bold },
+  { name: 'italic', label: '기울임', shortcut: 'Ctrl+I', icon: Italic },
+  { name: 'superscript', label: '위첨자', shortcut: 'Ctrl+Shift+=', icon: Superscript },
+  { name: 'subscript', label: '아래첨자', shortcut: 'Ctrl+=', icon: Subscript },
+] as const;
 
 function readNodes(node: Node): EditorNode[] {
   return Array.from(node.childNodes).flatMap((child): EditorNode[] => {
@@ -23,6 +32,7 @@ export function RichTextField({
   onChange: (blocks: Block[]) => void;
   id?: string;
 }) {
+  const [pressed, setPressed] = useState<Record<string, boolean>>({});
   const generated = useId();
   const fieldId = id ?? generated;
   const ref = useRef<HTMLDivElement>(null);
@@ -32,6 +42,14 @@ export function RichTextField({
     if (ref.current && serialized !== emitted.current)
       ref.current.innerHTML = editorHtml(blocksToEditor(value));
   }, [serialized, value]);
+  useEffect(() => {
+    const selectionChanged = () => {
+      if (!ref.current?.contains(document.getSelection()?.anchorNode ?? null)) return;
+      setPressed(Object.fromEntries(formats.map(({ name }) => [name, document.queryCommandState(name)])));
+    };
+    document.addEventListener('selectionchange', selectionChanged);
+    return () => document.removeEventListener('selectionchange', selectionChanged);
+  }, []);
   const change = () => {
     if (!ref.current) return;
     const paragraphs = editorToBlocks(readNodes(ref.current));
@@ -43,29 +61,26 @@ export function RichTextField({
     ref.current?.focus();
     document.execCommand('styleWithCSS', false, 'false');
     document.execCommand(name);
+    setPressed(
+      Object.fromEntries(formats.map(({ name: format }) => [format, document.queryCommandState(format)])),
+    );
     change();
   };
   return (
     <div className={styles.field}>
       <span id={`${fieldId}-label`}>{label}</span>
       <div className={styles.toolbar} role="toolbar" aria-label={`${label} 서식`}>
-        {(
-          [
-            ['underline', '밑줄 U'],
-            ['bold', '굵게 B'],
-            ['italic', '기울임 I'],
-            ['superscript', '위첨자'],
-            ['subscript', '아래첨자'],
-          ] as const
-        ).map(([name, title]) => (
+        {formats.map(({ name, label: title, shortcut, icon: Icon }) => (
           <button
             key={name}
             type="button"
             aria-label={title}
+            title={`${title} (${shortcut})`}
+            aria-pressed={pressed[name] ?? false}
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => command(name)}
           >
-            {title}
+            <Icon aria-hidden="true" />
           </button>
         ))}
       </div>
@@ -87,6 +102,13 @@ export function RichTextField({
                 event.key.toLowerCase()
               ]!,
             );
+          }
+          if (
+            (event.ctrlKey || event.metaKey) &&
+            (event.code === 'Equal' || event.key === '=' || event.key === '+')
+          ) {
+            event.preventDefault();
+            command(event.shiftKey ? 'superscript' : 'subscript');
           }
           if (event.key === 'Enter' && event.shiftKey) {
             event.preventDefault();

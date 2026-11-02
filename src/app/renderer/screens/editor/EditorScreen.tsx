@@ -13,6 +13,7 @@ import {
   Spinner,
   Toast,
 } from '../../components/index';
+import { usePasteJoin } from './usePasteJoin';
 import { useEditor } from './useEditor';
 import { EditorBasics } from './EditorBasics';
 import { EditorChoices } from './EditorChoices';
@@ -21,18 +22,19 @@ import { DuplicatePreview } from './DuplicatePreview';
 import styles from './EditorScreen.module.css';
 
 export function EditorScreen({ route, settings, query }: ScreenProps) {
+  const join = usePasteJoin(settings.pasteJoin);
   const editor = useEditor(settings.subjects[0]?.id ?? '', query, route.id === 'edit');
   const { question: q } = editor;
   const [closedToast, setClosedToast] = useState<unknown>();
+  const [pastePrimary, setPastePrimary] = useState(false);
   const capture = query.has('capturePaste');
   useReadySignal(
     route.id,
-    !editor.error &&
-      (editor.loading ||
-        editor.busy ||
-        editor.painted !== editor.detail ||
-        !editor.checked ||
-        (capture && !editor.batch)),
+    editor.loading ||
+      editor.busy ||
+      join.loading ||
+      editor.painted !== editor.detail ||
+      (!editor.error && (!editor.checked || (capture && !editor.batch))),
     editor.error,
   );
   if (editor.loading) return <Spinner />;
@@ -44,8 +46,19 @@ export function EditorScreen({ route, settings, query }: ScreenProps) {
   return (
     <div className={styles.editor}>
       <div className={styles.form} inert={editor.busy}>
+        {join.error && <p role="alert">{join.error}</p>}
         {editor.error && <ErrorState message={editor.error} retry={() => editor.setError('')} />}
-        <EditorPastePanel {...editor} error={editor.setError} capture={capture} update={editor.applyBatch} />
+        <EditorPastePanel
+          edit={route.id === 'edit'}
+          join={join.value}
+          joinLoading={join.loading}
+          changeJoin={join.change}
+          onPrimaryChange={setPastePrimary}
+          {...editor}
+          error={editor.setError}
+          capture={capture}
+          update={editor.applyBatch}
+        />
         <EditorBasics question={q} settings={settings} change={editor.change} />
         <RichTextField
           id="editor-stem"
@@ -69,7 +82,7 @@ export function EditorScreen({ route, settings, query }: ScreenProps) {
         />
         <div className={styles.actions}>
           <Button
-            variant="primary"
+            variant={pastePrimary ? 'secondary' : 'primary'}
             disabledReason={blocked}
             disabled={editor.busy || !!blocked}
             onClick={() => {

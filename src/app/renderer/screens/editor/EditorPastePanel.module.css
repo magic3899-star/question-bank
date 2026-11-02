@@ -1,0 +1,11 @@
+.panel {
+  display: grid;
+  gap: var(--space-2);
+}
+.panel[hidden] {
+  display: none;
+}
+.text {
+  display: grid;
+  gap: var(--space-2);
+}

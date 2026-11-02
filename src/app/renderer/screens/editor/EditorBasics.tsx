@@ -1,9 +1,10 @@
+import styles from './EditorBasics.module.css';
 import { useState } from 'react';
 import type { Question } from '../../../../contracts/index';
 import { parseObjectiveCode } from '../../../../modules/objective-code/index';
 import type { Settings } from '../../../shared/index';
 import { useApi } from '../../hooks/index';
-import { Button, Dialog, TreeNodes, ErrorState, Spinner } from '../../components/index';
+import { Button, Select, Dialog, TreeNodes, ErrorState, Spinner } from '../../components/index';
 
 export function EditorBasics({
   question: q,
@@ -20,34 +21,35 @@ export function EditorBasics({
   return (
     <section>
       <h3>기본 정보</h3>
-      <label>
-        과목
-        <select value={q.subject} onChange={(e) => change({ subject: e.target.value, objectiveCode: '' })}>
-          {!settings.subjects.some((s) => s.id === q.subject) && (
-            <option value={q.subject}>{q.subject}</option>
-          )}
-          {settings.subjects.map((s) => (
-            <option value={s.id} key={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        학습목표 코드
-        <input
-          id="editor-objective"
-          list="editor-objectives"
-          value={q.objectiveCode ?? ''}
-          onChange={(e) => change({ objectiveCode: e.target.value })}
-        />
-      </label>
+      <Select
+        label="과목"
+        value={q.subject}
+        onChange={(e) => change({ subject: e.target.value, objectiveCode: '' })}
+      >
+        {!settings.subjects.some((s) => s.id === q.subject) && <option value={q.subject}>{q.subject}</option>}
+        {settings.subjects.map((s) => (
+          <option value={s.id} key={s.id}>
+            {s.name}
+          </option>
+        ))}
+      </Select>
+      <div className={styles.objective}>
+        <label htmlFor="editor-objective">학습목표 코드</label>
+        <div className={styles.group}>
+          <input
+            id="editor-objective"
+            list="editor-objectives"
+            value={q.objectiveCode ?? ''}
+            onChange={(e) => change({ objectiveCode: e.target.value })}
+          />
+          <Button onClick={() => setOpen(true)}>목록에서 고르기</Button>
+        </div>
+      </div>
       <datalist id="editor-objectives">
         {codes.value?.map((code) => (
           <option key={code} value={code} />
         ))}
       </datalist>
-      <Button onClick={() => setOpen(true)}>목록에서 고르기</Button>
       {!q.objectiveCode?.trim() ? (
         <p>학습목표가 없으면 출제 대상에서 빠집니다.</p>
       ) : (
@@ -56,14 +58,15 @@ export function EditorBasics({
         )
       )}
       {codes.error && <ErrorState message={codes.error} retry={codes.retry} />}
-      <label>
-        등급
-        <select value={q.grade ?? ''} onChange={(e) => change({ grade: e.target.value || undefined })}>
-          <option value="">없음</option>
-          <option>A</option>
-          <option>B</option>
-        </select>
-      </label>
+      <Select
+        label="등급"
+        value={q.grade ?? ''}
+        onChange={(e) => change({ grade: e.target.value || undefined })}
+      >
+        <option value="">없음</option>
+        <option>A</option>
+        <option>B</option>
+      </Select>
       {open && (
         <Dialog title="학습목표 목록" close={() => setOpen(false)}>
           {tree.loading ? (

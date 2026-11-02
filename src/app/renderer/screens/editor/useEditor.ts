@@ -106,11 +106,20 @@ export function useEditor(subject: string, query: URLSearchParams, edit: boolean
     setBaseline('');
     setOverwrite(undefined);
   };
-  const parse = async (text: string, capture = false) => {
+  const parseRevision = useRef(0);
+  const parse = async (
+    text: string,
+    replaceCurrent = false,
+    joinWrappedLinesWith: 'space' | 'none' = 'space',
+  ) => {
+    const revision = ++parseRevision.current;
     setBusy(true);
     setError('');
     try {
-      const parsed = await unwrap(window.qb.editor.parseText({ text, subject: current.current.subject }));
+      const parsed = await unwrap(
+        window.qb.editor.parseText({ text, subject: current.current.subject, joinWrappedLinesWith }),
+      );
+      if (revision !== parseRevision.current) return;
       const previous = current.current;
       if (edit && previous.id && parsed.questions.length === 1)
         parsed.questions[0] = {
@@ -128,12 +137,12 @@ export function useEditor(subject: string, query: URLSearchParams, edit: boolean
           ...previous.explanation,
           ...previous.choices.flatMap((choice) => choice.content),
         ]);
-      if ((dirty || hasContent) && !capture) setOverwrite(parsed);
+      if ((dirty || hasContent) && !replaceCurrent) setOverwrite(parsed);
       else acceptParse(parsed);
     } catch (cause) {
-      setError((cause as Error).message);
+      if (revision === parseRevision.current) setError((cause as Error).message);
     } finally {
-      setBusy(false);
+      if (revision === parseRevision.current) setBusy(false);
     }
   };
   const next = (status: string) => {

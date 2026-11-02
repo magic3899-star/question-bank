@@ -36,6 +36,7 @@ export const channels = {
 export type Theme = 'system' | 'light' | 'dark';
 export interface Settings {
   theme: Theme;
+  pasteJoin?: 'space' | 'none';
   subjects: { id: string; name: string }[];
   defaultSaveDir: string;
   window?: { width: number; height: number; x?: number; y?: number };
@@ -85,8 +86,15 @@ export interface QuestionDetail {
 }
 export interface QbApi {
   editor: {
-    parseText(request: { text: string; subject: string }): Promise<Result<EditorParseResult>>;
-    parseExplanations(request: { text: string }): Promise<Result<ParsedExplanation[]>>;
+    parseText(request: {
+      text: string;
+      subject: string;
+      joinWrappedLinesWith?: 'space' | 'none';
+    }): Promise<Result<EditorParseResult>>;
+    parseExplanations(request: {
+      text: string;
+      joinWrappedLinesWith?: 'space' | 'none';
+    }): Promise<Result<ParsedExplanation[]>>;
     setDirty(dirty: boolean): Promise<Result<void>>;
   };
   assets: { add(request: { bytes: Uint8Array; mime: string }): Promise<Result<AssetData>> };

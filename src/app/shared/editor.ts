@@ -9,6 +9,8 @@ export interface ParsedExplanation {
   number: string;
   explanation: Block[];
   answerPositions: number[];
+  answerLabels?: string[];
+  diagnostics?: Diagnostic[];
 }
 export interface ExplanationPair {
   questionId: string;

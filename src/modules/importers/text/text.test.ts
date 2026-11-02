@@ -135,7 +135,7 @@ describe('해설만 붙여넣기', () => {
     );
     expect(result.map((r) => r.number)).toEqual(['1', '01', '2']);
     expect(result.map((r) => blocksToPlainText(r.explanation))).toEqual([
-      '가짜 하나\n추가 설명',
+      '가짜 하나 추가 설명',
       '가짜 둘',
       '가짜 셋',
     ]);
@@ -153,4 +153,79 @@ describe('해설만 붙여넣기', () => {
       '양식',
     );
   });
+});
+
+describe('줄 잇기 선택과 해설 정답 머리', () => {
+  const parse = (stem: string, mode: 'space' | 'none') =>
+    parseQuestionText(`1. ${stem}\n① 첫째\n② 둘째\n정답: ②\n해설: 설명\n과목 1-1-1 (A)`, {
+      subject: 'fake',
+      joinWrappedLinesWith: mode,
+    }).questions[0]!.question;
+  it('기본 공백과 붙여서 모드 모두 선지·정답 경계를 보존한다', () => {
+    expect(blocksToPlainText(parse('가짜 자\n는?', 'space').stem)).toBe('가짜 자 는?');
+    const q = parse('가짜 자\n는?', 'none');
+    expect(blocksToPlainText(q.stem)).toBe('가짜 자는?');
+    expect(q.choices.map((choice) => blocksToPlainText(choice.content))).toEqual(['첫째', '둘째']);
+    expect(q.answerChoiceIds).toEqual(['c2']);
+    expect(blocksToPlainText(q.explanation)).toBe('설명');
+  });
+  it.each([
+    ['끝.\n다음', '끝. 다음'],
+    ['끝,\n다음', '끝, 다음'],
+    ['끝)\n다음', '끝) 다음'],
+    ['끝】\n다음', '끝】 다음'],
+    ['앞\n(보기)', '앞 (보기)'],
+    ['앞\n「인용」', '앞 「인용」'],
+    ['앞\nABC', '앞 ABC'],
+    ['앞\nabc', '앞 abc'],
+    ['앞\n123개 항목', '앞 123개 항목'],
+  ])('붙여서 모드의 예외 %s', (input, expected) => {
+    expect(blocksToPlainText(parse(input, 'none').stem)).toBe(expected);
+  });
+  it.each(['정답 ③', '정답: ③', '[정답] ③', '답 ③', '정답 3', '정답：③'])(
+    '%s를 본문에서 제거하고 별도 필드로 추출한다',
+    (header) => {
+      const entry = parseExplanationText(`01. ${header}\n가짜 해설`)[0]!;
+      expect(entry.number).toBe('01');
+      expect(entry.answerLabels).toEqual([header === '정답 3' ? '3' : '③']);
+      expect(blocksToPlainText(entry.explanation)).toBe('가짜 해설');
+    },
+  );
+  it('정답 없는 본문·본문 중 정답 참조·빈 줄을 보존한다', () => {
+    const [entry] = parseExplanationText('1. 가짜 해설\n잘린 줄\n\n정답 ③');
+    expect(entry!.answerLabels).toBeUndefined();
+    expect(blocksToPlainText(entry!.explanation)).toBe('가짜 해설 잘린 줄\n정답 ③');
+  });
+  it('해설도 두 모드로 잇고 쪽 번호와 반복 머리글을 보존·경고한다', () => {
+    const text = '1. 정답 ③\n가짜 자\n는 설명.\n- 7 -\n반복 머리글\n반복 머리글';
+    for (const mode of ['space', 'none'] as const) {
+      const entry = parseExplanationText(text, { joinWrappedLinesWith: mode })[0]!;
+      const body = blocksToPlainText(entry.explanation);
+      expect(body).toContain(mode === 'space' ? '가짜 자 는 설명.' : '가짜 자는 설명.');
+      expect(body).toContain('- 7 -');
+      expect(entry.diagnostics?.filter((d) => d.code === 'PDF_ARTIFACT_SUSPECTED')).toHaveLength(3);
+    }
+  });
+});
+
+it('붙여서 모드도 잘린 선지를 잇되 다음 선지와 정답 줄은 잇지 않는다', () => {
+  const result = parseQuestionText(
+    '1. 가짜 본문\n① 첫\n선지\n② 둘째\n정답: ②\n해설: 가짜 설\n명\n과목 1-1-1 (A)',
+    { subject: 'fake', joinWrappedLinesWith: 'none' },
+  );
+  const q = result.questions[0]!.question;
+  expect(q.choices.map((c) => blocksToPlainText(c.content))).toEqual(['첫선지', '둘째']);
+  expect(q.answerChoiceIds).toEqual(['c2']);
+  expect(blocksToPlainText(q.explanation)).toBe('가짜 설명');
+});
+it('해설 반복 머리글 경고는 번호 경계를 넘어 탐지하고 보정 해제는 원문 줄을 유지한다', () => {
+  const text = '1. 정답 ③\n가짜 해\n설\n반복 머리글\n2. 정답 2\n반복 머리글';
+  const entries = parseExplanationText(text, { joinWrappedLinesWith: 'none' });
+  expect(entries[0]!.diagnostics).toHaveLength(2);
+  expect(entries[1]!.diagnostics).toHaveLength(2);
+  expect(blocksToPlainText(entries[0]!.explanation)).toBe('가짜 해설\n반복 머리글');
+  const original = parseExplanationText(text, { pdfCopyCleanup: false })[0]!;
+  expect(blocksToPlainText(original.explanation)).toContain('가짜 해\n설');
+  expect(original.diagnostics).toBeUndefined();
+  expect(original.answerLabels).toEqual(['③']);
 });

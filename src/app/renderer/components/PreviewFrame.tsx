@@ -28,6 +28,7 @@ export function PreviewFrame({
         </div>
       )}
       <iframe
+        key={html}
         title="문항·정답·해설 미리보기"
         sandbox=""
         srcDoc={html}

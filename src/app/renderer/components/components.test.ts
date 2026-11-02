@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { Badge, Button, EmptyState, ErrorState, SearchInput, Skeleton, Tabs } from './index';
+import { Badge, Button, EmptyState, ErrorState, Select, SearchInput, Skeleton, Tabs } from './index';
 
 describe('분리한 공통 컴포넌트 HTML', () => {
   it('비활성 버튼은 키보드로 확인할 수 있는 이유를 표시한다', () => {
@@ -49,4 +49,19 @@ describe('분리한 공통 컴포넌트 HTML', () => {
     expect(html).toContain('aria-selected="false" tabindex="-1"');
     expect(html).toContain('aria-selected="true" tabindex="0"');
   });
+});
+
+it('Select는 라벨·오류 설명·기본 키보드 조작을 위한 select를 연결한다', () => {
+  const html = renderToStaticMarkup(
+    createElement(
+      Select,
+      { label: '등급', id: 'fake-grade', error: '등급을 다시 고르세요.', disabled: true },
+      createElement('option', { value: 'A' }, 'A'),
+    ),
+  );
+  expect(html).toContain('for="fake-grade"');
+  expect(html).toContain('id="fake-grade"');
+  expect(html).toContain('aria-invalid="true"');
+  expect(html).toContain('aria-describedby="fake-grade-error"');
+  expect(html).toContain('disabled=""');
 });

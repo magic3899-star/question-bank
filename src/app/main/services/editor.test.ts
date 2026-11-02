@@ -159,7 +159,7 @@ describe('직접 추가 편집 서비스', () => {
       answerPositions: [3],
     };
     const changed = await service.applyExplanations({ pairs: [pair] });
-    expect(changed[0]).toMatchObject({ answerChoiceIds: ['c3'], shufflePolicy: 'lock-all' });
+    expect(changed[0]).toMatchObject({ answerChoiceIds: ['c3'], explanation: paragraph('가짜 해설') });
     expect(changed[0]!.updatedAt).not.toBe(first.updatedAt);
     for (const invalid of [
       { ...pair, number: '1' },
@@ -176,6 +176,61 @@ describe('직접 추가 편집 서비스', () => {
     });
     const bank = createBankService(storage, () => defaultSettings);
     expect((await bank.list({ offset: 0, limit: 50, withoutExplanation: true })).total).toBe(0);
+  });
+  it('줄 잇기와 추출 정답을 전달하고 범위 오류 시 묶음 전체를 저장하지 않는다', async () => {
+    const text = '1. 가짜 자\n는?\n① 첫째\n② 둘째';
+    expect(
+      service.parseText({ text, subject: 'fake', joinWrappedLinesWith: 'none' }).questions[0]!.stem,
+    ).toEqual(paragraph('가짜 자는?'));
+    expect(() => service.parseText({ text, subject: 'fake', joinWrappedLinesWith: 'auto' })).toThrow(
+      '줄바꿈',
+    );
+    expect(() => service.parseExplanations({ text: '1. 설명', joinWrappedLinesWith: true })).toThrow(
+      '줄바꿈',
+    );
+    const entries = service.parseExplanations({
+      text: '1. [정답] ③\n가짜 자\n는 설명\n2. 정답 9\n다른 설명',
+      joinWrappedLinesWith: 'none',
+    });
+    expect(entries[0]).toMatchObject({
+      answerLabels: ['③'],
+      answerPositions: [3],
+      explanation: paragraph('가짜 자는 설명'),
+    });
+    const first = (await save({ ...fake(), extra: { addBatchId: 'batch', originalNumber: '1' } })).question;
+    const second = (
+      await save({
+        ...fake(),
+        stem: paragraph('다른 가짜'),
+        extra: { addBatchId: 'batch', originalNumber: '2' },
+      })
+    ).question;
+    await expect(
+      service.applyExplanations({
+        pairs: entries.map((entry, index) => ({
+          questionId: [first.id, second.id][index],
+          number: entry.number,
+          explanation: entry.explanation,
+          answerPositions: entry.answerPositions,
+        })),
+      }),
+    ).rejects.toThrow('선지 범위');
+    expect((await storage.questions.get(first.id))!.explanation).toEqual([]);
+    await service.applyExplanations({
+      pairs: [{ questionId: first.id, number: '1', explanation: entries[0]!.explanation }],
+    });
+    expect((await storage.questions.get(first.id))!.answerChoiceIds).toEqual(['c1']);
+    await service.applyExplanations({
+      pairs: [
+        {
+          questionId: first.id,
+          number: '1',
+          explanation: entries[0]!.explanation,
+          answerPositions: entries[0]!.answerPositions,
+        },
+      ],
+    });
+    expect((await storage.questions.get(first.id))!.answerChoiceIds).toEqual(['c3']);
   });
   it('목록 필터는 빈 표·공백 해설도 누락으로 보고 목표 자동완성은 과목별로 중복 제거한다', async () => {
     await save({ ...fake(), objectiveCode: '가짜 1-1-1', explanation: paragraph(' ') });

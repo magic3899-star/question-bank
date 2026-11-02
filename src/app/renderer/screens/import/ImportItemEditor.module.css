@@ -11,16 +11,10 @@
 .editor legend {
   font-weight: var(--weight-medium);
 }
-.editor select {
-  display: block;
-  width: 100%;
-  background: var(--surface);
-  border: var(--line) solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2);
-}
-.editor label {
-  display: block;
+.editor label:has(input[type='checkbox']) {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
 }
 .editor ul {
   margin: 0;

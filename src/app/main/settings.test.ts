@@ -21,6 +21,15 @@ describe('앱 설정 보존', () => {
     expect(createSettingsService(file, now).get().subjects[0].name).toBe('법규');
     expect(createSettingsService(file, now).get().theme).toBe('dark');
   });
+  it('이전 설정은 공백 모드를 기본으로 쓰고 줄 잇기 선택을 재실행 후에도 보존한다', () => {
+    const file = join(directory, 'settings.json');
+    writeFileSync(file, JSON.stringify({ theme: 'dark' }));
+    const service = createSettingsService(file, now);
+    expect(service.get().pasteJoin).toBe('space');
+    service.update({ pasteJoin: 'none' });
+    expect(createSettingsService(file, now).get().pasteJoin).toBe('none');
+    expect(validateSettings({ pasteJoin: 'space' })).toEqual({ pasteJoin: 'space' });
+  });
   it.each(['{broken', '{"theme":"wrong"}'])('손상 설정 원본을 보존하고 기본값을 사용한다', (text) => {
     const file = join(directory, 'settings.json');
     writeFileSync(file, text);
@@ -31,6 +40,9 @@ describe('앱 설정 보존', () => {
   it.each([
     null,
     { theme: 'no' },
+    { pasteJoin: 'auto' },
+    { pasteJoin: null },
+    { pasteJoin: 1 },
     { subjects: [{ id: 'a', name: '' }] },
     {
       subjects: [
