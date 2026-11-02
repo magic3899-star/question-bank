@@ -4,9 +4,17 @@
   "private": true,
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.web.json && tsc -p tsconfig.node.json",
     "lint:deps": "node .dependency-cruiser-runner.cjs --config .dependency-cruiser.cjs src tests",
-    "test:fast": "vitest run --exclude \"tests/e2e/**\" --exclude \"tests/invariants/**\""
+    "test:fast": "vitest run --exclude \"tests/e2e/**\" --exclude \"tests/invariants/**\"",
+    "dist": "npm.cmd run build && electron-builder --win nsis --publish never",
+    "build": "electron-vite build",
+    "capture": "node scripts/capture.cjs",
+    "app": "electron-vite preview",
+    "dev": "electron-vite dev",
+    "seed": "node scripts/dev-seed.cjs",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"scripts/**/*.{cjs,mjs,ts}\" \"*.{ts,cjs,json}\" \"src/app/renderer/index.html\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"scripts/**/*.{cjs,mjs,ts}\" \"*.{ts,cjs,json}\" \"src/app/renderer/index.html\""
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.12",
@@ -29,6 +37,7 @@
     "electron": "^45.2.1",
     "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
+    "prettier": "^3.9.10",
     "typescript": "~5.9.3",
     "vite": "^7.3.7",
     "vitest": "^3.2.7"
@@ -37,11 +46,7 @@
     "node": ">=22.15.0"
   },
   "description": "출판사 모의고사 문제은행",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs",
-    "test": "tests"
-  },
+  "main": "out/main/index.js",
   "keywords": [],
   "author": "",
   "license": "ISC"

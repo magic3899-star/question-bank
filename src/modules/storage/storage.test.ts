@@ -27,32 +27,72 @@ afterEach(() => {
 
 const blocks: Block[] = [
   para('가짜 밑줄 문장', { underline: true }),
-  { type: 'table', rows: [[[para('가짜 셀'), {
-    type: 'table', rows: [[[para('가짜 중첩', { bold: true, underline: true })], [{ type: 'image', assetId: 'asset-1' }]]],
-  }]]] },
+  {
+    type: 'table',
+    rows: [
+      [
+        [
+          para('가짜 셀'),
+          {
+            type: 'table',
+            rows: [
+              [[para('가짜 중첩', { bold: true, underline: true })], [{ type: 'image', assetId: 'asset-1' }]],
+            ],
+          },
+        ],
+      ],
+    ],
+  },
 ];
 const asset: AssetData = { id: 'asset-1', mime: 'image/png', sha256: 'dummy-hash', dataBase64: 'ZHVtbXk=' };
 const snapshot = (overrides: Partial<ExamSnapshot> = {}): ExamSnapshot => ({
-  schemaVersion: 1, examId: 'exam-1', title: '가짜 시험 1', subject: 'dummy',
-  createdAt: '2026-01-01T00:00:00.000Z', seed: 'dummy-seed', ruleSetId: 'rules-1', ruleSetVersion: 1,
-  items: [{ number: 1, sourceQuestionId: 'question-1', stem: blocks, passage: blocks,
-    choices: [{ label: '①', sourceChoiceId: 'choice-1', content: blocks }], answerLabels: ['①'], explanation: blocks }],
-  assets: { [asset.id]: asset }, contentHash: 'dummy-content-hash', ...overrides,
+  schemaVersion: 1,
+  examId: 'exam-1',
+  title: '가짜 시험 1',
+  subject: 'dummy',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  seed: 'dummy-seed',
+  ruleSetId: 'rules-1',
+  ruleSetVersion: 1,
+  items: [
+    {
+      number: 1,
+      sourceQuestionId: 'question-1',
+      stem: blocks,
+      passage: blocks,
+      choices: [{ label: '①', sourceChoiceId: 'choice-1', content: blocks }],
+      answerLabels: ['①'],
+      explanation: blocks,
+    },
+  ],
+  assets: { [asset.id]: asset },
+  contentHash: 'dummy-content-hash',
+  ...overrides,
 });
 
 describe('SQLite 저장소', () => {
   it('문제 CRUD에서 블록, 밑줄, 중첩 표와 확장 필드를 그대로 왕복한다', async () => {
     const storage = open();
-    const question = makeQuestion({ stem: blocks, passage: blocks, explanation: blocks,
-      choices: [{ id: 'choice-1', content: blocks }], passageGroupId: 'group-1',
-      extra: { future: { dummy: ['가짜 확장 필드'] } } });
+    const question = makeQuestion({
+      stem: blocks,
+      passage: blocks,
+      explanation: blocks,
+      choices: [{ id: 'choice-1', content: blocks }],
+      passageGroupId: 'group-1',
+      extra: { future: { dummy: ['가짜 확장 필드'] } },
+    });
     await storage.questions.upsertMany([question]);
     expect(await storage.questions.get(question.id)).toEqual(question);
     expect(await storage.questions.query({})).toEqual([question]);
     const read = (await storage.questions.get(question.id))!;
     read.tags.push('가짜 변경');
     expect(await storage.questions.get(question.id)).toEqual(question);
-    const updated = { ...question, subject: 'other', stem: [para('가짜 수정 문장')], updatedAt: '2026-02-01T00:00:00.000Z' };
+    const updated = {
+      ...question,
+      subject: 'other',
+      stem: [para('가짜 수정 문장')],
+      updatedAt: '2026-02-01T00:00:00.000Z',
+    };
     await storage.questions.upsertMany([updated]);
     expect(await storage.questions.count()).toBe(1);
     expect(await storage.questions.get(question.id)).toEqual(updated);
@@ -109,9 +149,15 @@ describe('SQLite 저장소', () => {
     await storage.snapshots.save(first);
     await storage.snapshots.save(second);
     expect(await storage.snapshots.get(first.examId)).toEqual(first);
-    expect(await storage.snapshots.list(1)).toEqual([{
-      examId: second.examId, createdAt: second.createdAt, subject: second.subject, seed: second.seed, title: second.title,
-    }]);
+    expect(await storage.snapshots.list(1)).toEqual([
+      {
+        examId: second.examId,
+        createdAt: second.createdAt,
+        subject: second.subject,
+        seed: second.seed,
+        title: second.title,
+      },
+    ]);
     expect(await storage.snapshots.list()).toHaveLength(2);
     expect(await storage.snapshots.list(0)).toEqual([]);
     await storage.snapshots.save({ ...first, title: '가짜 수정 시험' });
@@ -122,9 +168,9 @@ describe('SQLite 저장소', () => {
     const storage = open();
     const extra: Record<string, unknown> = {};
     extra.circular = extra;
-    await expect(storage.questions.upsertMany([
-      makeQuestion({ id: 'first' }), makeQuestion({ id: 'second', extra }),
-    ])).rejects.toThrow('데이터 형식');
+    await expect(
+      storage.questions.upsertMany([makeQuestion({ id: 'first' }), makeQuestion({ id: 'second', extra })]),
+    ).rejects.toThrow('데이터 형식');
     expect(await storage.questions.count()).toBe(0);
   });
 
@@ -158,7 +204,17 @@ describe('문제 쿼리', () => {
     expect(await ids({ text: '가짜 중첩' })).toEqual(['q2']);
     expect(await ids({ hasObjective: true })).toEqual(['q1', 'q2']);
     expect(await ids({ hasObjective: false })).toEqual(['q3', 'q4', 'q5']);
-    expect(await ids({ subject: 'a', objectivePrefix: '가짜목표', tag: '공통', text: '가짜 밑줄', hasObjective: true, limit: 1, offset: 0 })).toEqual(['q2']);
+    expect(
+      await ids({
+        subject: 'a',
+        objectivePrefix: '가짜목표',
+        tag: '공통',
+        text: '가짜 밑줄',
+        hasObjective: true,
+        limit: 1,
+        offset: 0,
+      }),
+    ).toEqual(['q2']);
     expect(await ids({ limit: 2, offset: 1 })).toEqual(['q2', 'q3']);
     expect(await ids({ offset: 3 })).toEqual(['q4', 'q5']);
     expect(await ids({ limit: 0 })).toEqual([]);
@@ -170,7 +226,12 @@ describe('문제 쿼리', () => {
   it('검색용 내용 전체와 LIKE 특수문자를 리터럴로 검색한다', async () => {
     const storage = open();
     await storage.questions.upsertMany([
-      makeQuestion({ id: 'q1', stem: [para("가짜 100%_\\' 문장")], objectiveCode: '가짜_%', sourceTag: '가짜출처' }),
+      makeQuestion({
+        id: 'q1',
+        stem: [para("가짜 100%_\\' 문장")],
+        objectiveCode: '가짜_%',
+        sourceTag: '가짜출처',
+      }),
       makeQuestion({ id: 'q2', stem: [para('가짜 100abc 문장')], objectiveCode: '가짜abc' }),
     ]);
     for (const text of ["100%_\\'", '가짜출처']) {
@@ -199,12 +260,21 @@ describe('최근 출제 이력', () => {
   it('최근 N개 시험을 먼저 고르고 문제 조인으로 과목을 필터한다', async () => {
     const storage = open();
     await storage.questions.upsertMany([
-      makeQuestion({ id: 'a1', subject: 'a' }), makeQuestion({ id: 'a2', subject: 'a' }),
+      makeQuestion({ id: 'a1', subject: 'a' }),
+      makeQuestion({ id: 'a2', subject: 'a' }),
       makeQuestion({ id: 'b1', subject: 'b' }),
     ]);
     const oldest = makeHistoryEntry({ examId: 'old', createdAt: '2026-01-01', questionIds: ['a1'] });
-    const middle = makeHistoryEntry({ examId: 'middle', createdAt: '2026-02-01', questionIds: ['b1', 'a2', 'b1'] });
-    const newest = makeHistoryEntry({ examId: 'new', createdAt: '2026-03-01', questionIds: ['b1', 'deleted'] });
+    const middle = makeHistoryEntry({
+      examId: 'middle',
+      createdAt: '2026-02-01',
+      questionIds: ['b1', 'a2', 'b1'],
+    });
+    const newest = makeHistoryEntry({
+      examId: 'new',
+      createdAt: '2026-03-01',
+      questionIds: ['b1', 'deleted'],
+    });
     for (const entry of [middle, newest, oldest]) await storage.history.record(entry);
     expect(await storage.history.list()).toEqual([newest, middle, oldest]);
     expect(await storage.history.list(1)).toEqual([newest]);
@@ -225,7 +295,12 @@ describe('최근 출제 이력', () => {
 });
 
 describe('마이그레이션', () => {
-  const version2: Migration = { version: 2, up: (db) => { db.exec('CREATE TABLE fake_v2 (id TEXT)'); } };
+  const version2: Migration = {
+    version: 2,
+    up: (db) => {
+      db.exec('CREATE TABLE fake_v2 (id TEXT)');
+    },
+  };
 
   it('최초 적용과 재오픈에서 데이터·인덱스·WAL을 보존한다', async () => {
     const path = filePath();
@@ -246,7 +321,11 @@ describe('마이그레이션', () => {
     const reopened = open(path, { beforeMigrate: callback });
     expect(await reopened.questions.get(question.id)).toEqual(question);
     expect(await reopened.assets.get(asset.id)).toEqual(asset);
-    expect(await reopened.passageGroups.get('group-1')).toEqual({ id: 'group-1', subject: 'dummy', content: blocks });
+    expect(await reopened.passageGroups.get('group-1')).toEqual({
+      id: 'group-1',
+      subject: 'dummy',
+      content: blocks,
+    });
     expect(await reopened.passageGroups.get(group.id)).toEqual(group);
     expect(await reopened.ruleSets.get('rules-1')).toEqual(makeRuleSet());
     expect(await reopened.history.list()).toEqual([makeHistoryEntry()]);
@@ -255,8 +334,12 @@ describe('마이그레이션', () => {
     const raw = new Database(path);
     try {
       expect(raw.pragma('journal_mode', { simple: true })).toBe('wal');
-      expect(raw.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='questions_subject'").get()).toBeDefined();
-    } finally { raw.close(); }
+      expect(
+        raw.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='questions_subject'").get(),
+      ).toBeDefined();
+    } finally {
+      raw.close();
+    }
   });
 
   it('데이터가 있는 DB의 v2 적용 직전에 콜백을 부르고 데이터를 보존한다', async () => {
@@ -271,7 +354,9 @@ describe('마이그레이션', () => {
         expect(raw.pragma('user_version', { simple: true })).toBe(1);
         expect(raw.prepare("SELECT name FROM sqlite_master WHERE name='fake_v2'").get()).toBeUndefined();
         expect(raw.prepare('SELECT count(*) AS total FROM questions').get()).toEqual({ total: 1 });
-      } finally { raw.close(); }
+      } finally {
+        raw.close();
+      }
     });
     const upgraded = open(path, { migrations: [version2], beforeMigrate: callback });
     expect(callback).toHaveBeenCalledTimes(1);
@@ -293,7 +378,9 @@ describe('마이그레이션', () => {
     expect(callback).toHaveBeenCalledWith({ fromVersion: 1, toVersion: 2 });
     expect(await upgraded.assets.get(asset.id)).toEqual(asset);
     const emptyCallback = vi.fn();
-    expect(open(':memory:', { migrations: [version2], beforeMigrate: emptyCallback }).schemaVersion()).toBe(2);
+    expect(open(':memory:', { migrations: [version2], beforeMigrate: emptyCallback }).schemaVersion()).toBe(
+      2,
+    );
     expect(emptyCallback).not.toHaveBeenCalled();
   });
 
@@ -302,20 +389,31 @@ describe('마이그레이션', () => {
     const storage = open(path);
     await storage.questions.upsertMany([makeQuestion()]);
     storage.close();
-    const failure: Migration = { version: 3, up(db) {
-      db.exec("UPDATE questions SET search_text = '가짜 손상'; DELETE FROM questions; CREATE TABLE fake_v3 (id TEXT)");
-      throw new Error('가짜 마이그레이션 실패');
-    } };
+    const failure: Migration = {
+      version: 3,
+      up(db) {
+        db.exec(
+          "UPDATE questions SET search_text = '가짜 손상'; DELETE FROM questions; CREATE TABLE fake_v3 (id TEXT)",
+        );
+        throw new Error('가짜 마이그레이션 실패');
+      },
+    };
     const callback = vi.fn();
-    expect(() => openStorage(path, { migrations: [version2, failure], beforeMigrate: callback })).toThrow('변경을 취소');
+    expect(() => openStorage(path, { migrations: [version2, failure], beforeMigrate: callback })).toThrow(
+      '변경을 취소',
+    );
     expect(callback).toHaveBeenCalledWith({ fromVersion: 1, toVersion: 3 });
     const recovered = open(path);
     expect(recovered.schemaVersion()).toBe(1);
     expect(await recovered.questions.get('question-1')).toEqual(makeQuestion());
     const raw = new Database(path);
     try {
-      expect(raw.prepare("SELECT name FROM sqlite_master WHERE name IN ('fake_v2', 'fake_v3')").all()).toEqual([]);
-    } finally { raw.close(); }
+      expect(
+        raw.prepare("SELECT name FROM sqlite_master WHERE name IN ('fake_v2', 'fake_v3')").all(),
+      ).toEqual([]);
+    } finally {
+      raw.close();
+    }
   });
 
   it('콜백 실패 시 마이그레이션을 시작하지 않는다', async () => {
@@ -323,9 +421,14 @@ describe('마이그레이션', () => {
     const storage = open(path);
     await storage.questions.upsertMany([makeQuestion()]);
     storage.close();
-    expect(() => openStorage(path, { migrations: [version2], beforeMigrate() {
-      throw new Error('가짜 백업 실패');
-    } })).toThrow('백업 콜백');
+    expect(() =>
+      openStorage(path, {
+        migrations: [version2],
+        beforeMigrate() {
+          throw new Error('가짜 백업 실패');
+        },
+      }),
+    ).toThrow('백업 콜백');
     expect(open(path).schemaVersion()).toBe(1);
   });
 
@@ -338,25 +441,35 @@ describe('마이그레이션', () => {
   });
 
   it('활성 연결의 외래 키 설정으로 잘못된 이력 참조를 거부한다', () => {
-    const migration: Migration = { version: 2, up(db) {
-      expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
-      expect(() => db.prepare('INSERT INTO history_questions VALUES (?, ?)').run('missing', 'dummy')).toThrow();
-    } };
+    const migration: Migration = {
+      version: 2,
+      up(db) {
+        expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
+        expect(() =>
+          db.prepare('INSERT INTO history_questions VALUES (?, ?)').run('missing', 'dummy'),
+        ).toThrow();
+      },
+    };
     expect(open(':memory:', { migrations: [migration] }).schemaVersion()).toBe(2);
   });
 
   it('신규 DB 초기화 중 실패해도 테이블과 버전을 함께 롤백한다', () => {
     const path = filePath();
-    const failing: Migration = { version: 2, up(db) {
-      db.exec('CREATE TABLE dummy_failure (id TEXT)');
-      throw new Error('가짜 신규 DB 초기화 실패');
-    } };
+    const failing: Migration = {
+      version: 2,
+      up(db) {
+        db.exec('CREATE TABLE dummy_failure (id TEXT)');
+        throw new Error('가짜 신규 DB 초기화 실패');
+      },
+    };
     expect(() => openStorage(path, { migrations: [failing] })).toThrow('변경을 취소');
     const raw = new Database(path);
     try {
       expect(raw.pragma('user_version', { simple: true })).toBe(0);
       expect(raw.prepare("SELECT name FROM sqlite_master WHERE type='table'").all()).toEqual([]);
-    } finally { raw.close(); }
+    } finally {
+      raw.close();
+    }
     expect(open(path).schemaVersion()).toBe(1);
   });
 

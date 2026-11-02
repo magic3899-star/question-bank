@@ -5,5 +5,9 @@ import { createPdfExporter } from './pdf/index';
 import type { PdfRenderer } from './pdf/index';
 
 export function createExporters(deps?: { renderPdf?: PdfRenderer; fontFaceCss?: string }): Exporter[] {
-  return [docxExporter, xlsxExporter, ...(deps?.renderPdf ? [createPdfExporter(deps.renderPdf, { fontFaceCss: deps.fontFaceCss })] : [])];
+  return [
+    docxExporter,
+    xlsxExporter,
+    ...(deps?.renderPdf ? [createPdfExporter(deps.renderPdf, { fontFaceCss: deps.fontFaceCss })] : []),
+  ];
 }

@@ -25,3 +25,4 @@ coverage/
 .env
 .env.*
 .tmp-realcheck/
+.tmp-stage5a/

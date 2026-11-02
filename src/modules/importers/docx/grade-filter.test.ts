@@ -7,14 +7,22 @@ import { docxImporter } from './index';
 
 function record(number: number, grade?: string, images: number[] = []): DocxNode[] {
   const question = makeQuestion();
-  return [p(`<2026-1-${number}>`), p(`${number}. ${blocksToPlainText(question.stem)} ${number}`),
+  return [
+    p(`<2026-1-${number}>`),
+    p(`${number}. ${blocksToPlainText(question.stem)} ${number}`),
     ...images.map((value) => image({ bytes: new Uint8Array([value]) })),
-    ...question.choices.map((choice, index) => p(`${['①', '②', '③', '④', '⑤'][index]} ${blocksToPlainText(choice.content)}`)),
-    p('정답: ①'), p('과목 1-2-3' + (grade ? ` ${grade}` : ''))];
+    ...question.choices.map((choice, index) =>
+      p(`${['①', '②', '③', '④', '⑤'][index]} ${blocksToPlainText(choice.content)}`),
+    ),
+    p('정답: ①'),
+    p('과목 1-2-3' + (grade ? ` ${grade}` : '')),
+  ];
 }
-const parse = async (body: DocxNode[], options: Record<string, unknown> = {}) => docxImporter.parse(
-  { fileName: '가짜 등급.docx', data: await buildDocx({ body }) }, { subject: 'dummy', ...options },
-);
+const parse = async (body: DocxNode[], options: Record<string, unknown> = {}) =>
+  docxImporter.parse(
+    { fileName: '가짜 등급.docx', data: await buildDocx({ body }) },
+    { subject: 'dummy', ...options },
+  );
 
 describe('가져오기 등급 필터', () => {
   it('기본 A만 포함하고 문제별 안내와 출처·미리보기를 남긴다', async () => {
@@ -23,7 +31,8 @@ describe('가져오기 등급 필터', () => {
     expect(draft.questions[0].question.extra.originalNumber).toBe('2');
     const skipped = draft.diagnostics.find((diagnostic) => diagnostic.code === 'SKIPPED_BY_GRADE')!;
     expect(skipped).toMatchObject({ severity: 'info' });
-    for (const text of ['등급 B', '번째 문단 부근', '가짜 문제 1 1', '등급 필터를 바꾸면 가져올 수 있습니다']) expect(skipped.message).toContain(text);
+    for (const text of ['등급 B', '번째 문단 부근', '가짜 문제 1 1', '등급 필터를 바꾸면 가져올 수 있습니다'])
+      expect(skipped.message).toContain(text);
     expect(draft.diagnostics.some((diagnostic) => diagnostic.code === 'UNPARSED_BLOCKS')).toBe(false);
   });
   it.each([['A', 'B'], null, []])('%j는 모든 가짜 등급을 포함한다', async (includeGrades) => {
@@ -37,7 +46,8 @@ describe('가져오기 등급 필터', () => {
     expect(draft.diagnostics.map((d) => d.code)).toEqual(['SKIPPED_BY_GRADE', 'SKIPPED_BY_GRADE']);
     expect(draft.diagnostics[0].message).toContain('등급 표시 없음');
     expect(draft.diagnostics[1].message).toContain('등급 B');
-    for (const includeGrades of [null, []]) expect((await parse(record(1), { includeGrades })).questions).toHaveLength(1);
+    for (const includeGrades of [null, []])
+      expect((await parse(record(1), { includeGrades })).questions).toHaveLength(1);
   });
   it('건너뜀 안내는 긴 문제 본문의 앞 20자까지만 보여준다', async () => {
     const body = record(1, '(B)');

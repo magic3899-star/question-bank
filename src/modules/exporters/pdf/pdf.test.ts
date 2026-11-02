@@ -20,8 +20,11 @@ describe('PDF 출력기', () => {
       expect(files[index].mime).toBe('application/pdf');
       expect(files[index].part).toBe(exportOptions.parts[index % 3]);
     }
-    expect(files.filter((file) => file.part === 'questions').map((file) => file.fileName))
-      .toEqual(['가짜_시험_문제지.pdf', '가짜_시험_문제지-2.pdf', '가짜_시험_문제지-3.pdf']);
+    expect(files.filter((file) => file.part === 'questions').map((file) => file.fileName)).toEqual([
+      '가짜_시험_문제지.pdf',
+      '가짜_시험_문제지-2.pdf',
+      '가짜_시험_문제지-3.pdf',
+    ]);
   });
   it('결합·중복 파트·빈 입력과 변환 실패를 처리한다', async () => {
     const render = vi.fn(async (html: string) => new TextEncoder().encode(html));
@@ -35,9 +38,14 @@ describe('PDF 출력기', () => {
     expect(html.indexOf('qb-answers-part')).toBeLessThan(html.indexOf('qb-explanations-part'));
     expect(await exporter.export([], exportOptions)).toEqual([]);
     expect(await exporter.export([makeExportSnapshot()], { ...exportOptions, parts: [] })).toEqual([]);
-    expect(await exporter.export([makeExportSnapshot()], { ...exportOptions, parts: ['answers', 'answers'] })).toHaveLength(1);
+    expect(
+      await exporter.export([makeExportSnapshot()], { ...exportOptions, parts: ['answers', 'answers'] }),
+    ).toHaveLength(1);
     const cause = new Error('가짜 변환 오류');
-    await expect(createPdfExporter(async () => { throw cause; }).export([makeExportSnapshot()], exportOptions))
-      .rejects.toMatchObject({ message: expect.stringContaining('PDF 변환에 실패했습니다'), cause });
+    await expect(
+      createPdfExporter(async () => {
+        throw cause;
+      }).export([makeExportSnapshot()], exportOptions),
+    ).rejects.toMatchObject({ message: expect.stringContaining('PDF 변환에 실패했습니다'), cause });
   });
 });

@@ -8,7 +8,9 @@ export function createRegistry(): PluginRegistry {
   return {
     register(plugin) {
       if (plugins.some((existing) => existing.kind === plugin.kind && existing.id === plugin.id)) {
-        throw new Error(`플러그인 ${plugin.kind}/${plugin.id}가 이미 등록되어 있습니다. 같은 종류 안에서 다른 ID를 사용하세요.`);
+        throw new Error(
+          `플러그인 ${plugin.kind}/${plugin.id}가 이미 등록되어 있습니다. 같은 종류 안에서 다른 ID를 사용하세요.`,
+        );
       }
       plugins.push(plugin);
     },

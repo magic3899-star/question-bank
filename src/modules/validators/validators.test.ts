@@ -12,7 +12,9 @@ it('모든 검수 플러그인은 고유한 ID와 한국어 이름을 가진다'
 
 it('문제별·전체 진단에 ref를 보충하고 심각도 순으로 안정 정렬하며 입력을 바꾸지 않는다', () => {
   const validator: Validator = {
-    kind: 'validator', id: 'dummy', label: '가짜 검사',
+    kind: 'validator',
+    id: 'dummy',
+    label: '가짜 검사',
     validate: () => [
       { code: 'I', severity: 'info', message: '가짜 정보' },
       { code: 'W', severity: 'warn', message: '가짜 경고' },

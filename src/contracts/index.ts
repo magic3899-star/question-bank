@@ -163,7 +163,10 @@ export interface Importer {
   readonly label: string;
   readonly extensions: string[];
   /** 파일 내용을 읽어 초안을 만든다. 저장은 하지 않는다. */
-  parse(input: { fileName: string; data: Uint8Array }, options?: Record<string, unknown>): Promise<ImportDraft>;
+  parse(
+    input: { fileName: string; data: Uint8Array },
+    options?: Record<string, unknown>,
+  ): Promise<ImportDraft>;
 }
 
 export type ValidatableQuestion = Omit<Question, 'id' | 'createdAt' | 'updatedAt'> | Question;

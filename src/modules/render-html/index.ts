@@ -1,7 +1,19 @@
-import type { AssetData, Block, ExamSnapshot, ExportOptions, ExportPart, InlineRun } from '../../contracts/index';
+import type {
+  AssetData,
+  Block,
+  ExamSnapshot,
+  ExportOptions,
+  ExportPart,
+  InlineRun,
+  Question,
+} from '../../contracts/index';
 
-interface RenderContext { assets: Record<string, AssetData> }
-export interface RenderHtmlOptions extends ExportOptions { fontFaceCss?: string }
+interface RenderContext {
+  assets: Record<string, AssetData>;
+}
+export interface RenderHtmlOptions extends ExportOptions {
+  fontFaceCss?: string;
+}
 export interface RenderedExamDocument {
   part: ExportPart | 'combined';
   examId: string | null;
@@ -10,45 +22,63 @@ export interface RenderedExamDocument {
 }
 
 function escapeHtml(value: string | number): string {
-  return String(value).replace(/&/gu, '&amp;').replace(/</gu, '&lt;').replace(/>/gu, '&gt;')
-    .replace(/"/gu, '&quot;').replace(/'/gu, '&#39;');
+  return String(value)
+    .replace(/&/gu, '&amp;')
+    .replace(/</gu, '&lt;')
+    .replace(/>/gu, '&gt;')
+    .replace(/"/gu, '&quot;')
+    .replace(/'/gu, '&#39;');
 }
 
 function renderRun(run: InlineRun): string {
   let html = escapeHtml(run.text).replace(/\n/gu, '<br>').replace(/\t/gu, '&emsp;');
-  const styles = [['underline', 'u'], ['bold', 'strong'], ['italic', 'em'], ['superscript', 'sup'], ['subscript', 'sub']] as const;
+  const styles = [
+    ['underline', 'u'],
+    ['bold', 'strong'],
+    ['italic', 'em'],
+    ['superscript', 'sup'],
+    ['subscript', 'sub'],
+  ] as const;
   for (const [key, tag] of styles) if (run[key]) html = `<${tag}>${html}</${tag}>`;
   return html;
 }
 
 export function renderBlocks(blocks: Block[], ctx: RenderContext): string {
-  return blocks.map((block): string => {
-    if (block.type === 'paragraph') return `<p style="white-space: pre-wrap">${block.runs.map(renderRun).join('')}</p>`;
-    if (block.type === 'table') {
-      const box = block.rows.length === 1 && block.rows[0].length === 1;
-      return `<table class="qb-table${box ? ' qb-box' : ''}"><tbody>${block.rows.map((row) =>
-        `<tr>${row.map((cell) => `<td>${renderBlocks(cell, ctx)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
-    }
-    const asset = Object.hasOwn(ctx.assets, block.assetId) ? ctx.assets[block.assetId] : undefined;
-    if (!asset) return '<span class="qb-warning" role="img" aria-label="이미지 없음">[이미지 없음]</span>';
-    const mime = asset.mime.toLowerCase();
-    if (!['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'].includes(mime)) {
-      return '<span class="qb-warning" role="img" aria-label="지원하지 않는 이미지">[지원하지 않는 이미지]</span>';
-    }
-    if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(asset.dataBase64)) {
-      return '<span class="qb-warning" role="img" aria-label="이미지 없음">[이미지 없음]</span>';
-    }
-    const dimension = (name: string, size: number | undefined): string => size !== undefined && Number.isFinite(size) && size > 0
-      ? ` ${name}="${escapeHtml(size)}"` : '';
-    return `<img src="${escapeHtml(`data:${mime};base64,${asset.dataBase64}`)}"${dimension('width', block.widthPx)}${dimension('height', block.heightPx)} alt="${escapeHtml(block.alt ?? '')}">`;
-  }).join('');
+  return blocks
+    .map((block): string => {
+      if (block.type === 'paragraph')
+        return `<p style="white-space: pre-wrap">${block.runs.map(renderRun).join('')}</p>`;
+      if (block.type === 'table') {
+        const box = block.rows.length === 1 && block.rows[0].length === 1;
+        return `<table class="qb-table${box ? ' qb-box' : ''}"><tbody>${block.rows
+          .map((row) => `<tr>${row.map((cell) => `<td>${renderBlocks(cell, ctx)}</td>`).join('')}</tr>`)
+          .join('')}</tbody></table>`;
+      }
+      const asset = Object.hasOwn(ctx.assets, block.assetId) ? ctx.assets[block.assetId] : undefined;
+      if (!asset) return '<span class="qb-warning" role="img" aria-label="이미지 없음">[이미지 없음]</span>';
+      const mime = asset.mime.toLowerCase();
+      if (!['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp'].includes(mime)) {
+        return '<span class="qb-warning" role="img" aria-label="지원하지 않는 이미지">[지원하지 않는 이미지]</span>';
+      }
+      if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(asset.dataBase64)) {
+        return '<span class="qb-warning" role="img" aria-label="이미지 없음">[이미지 없음]</span>';
+      }
+      const dimension = (name: string, size: number | undefined): string =>
+        size !== undefined && Number.isFinite(size) && size > 0 ? ` ${name}="${escapeHtml(size)}"` : '';
+      return `<img src="${escapeHtml(`data:${mime};base64,${asset.dataBase64}`)}"${dimension('width', block.widthPx)}${dimension('height', block.heightPx)} alt="${escapeHtml(block.alt ?? '')}">`;
+    })
+    .join('');
 }
 
 export function resolveTemplate(templateId: string): { id: 'standard'; usedFallback: boolean } {
   return { id: 'standard', usedFallback: templateId !== 'standard' };
 }
 
-const partNames: Record<ExportPart, string> = { questions: '문제지', answers: '정답지', explanations: '해설지' };
+const partNames: Record<ExportPart, string> = {
+  questions: '문제지',
+  answers: '정답지',
+  explanations: '해설지',
+};
 const partOrder: ExportPart[] = ['questions', 'answers', 'explanations'];
 
 const standardCss = `
@@ -85,6 +115,15 @@ img { max-width: 100%; height: auto; object-fit: contain; }
 @media print { .qb-part + .qb-part { margin-top: 0; } }
 `;
 
+export function renderQuestionHtml(question: Question, assets: Record<string, AssetData>): string {
+  const ctx = { assets };
+  const labels = Array.from('①②③④⑤⑥⑦⑧⑨⑩');
+  const answers = question.choices.flatMap((choice, index) =>
+    question.answerChoiceIds.includes(choice.id) ? [labels[index] ?? String(index + 1)] : [],
+  );
+  return `<!doctype html><html lang="ko"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'none'"><style>${standardCss}\n@media screen { body { padding: 16px; } }</style></head><body><article class="qb-item"><div class="qb-stem">${renderBlocks(question.stem, ctx)}</div>${question.passage?.length ? `<div class="qb-passage">${renderBlocks(question.passage, ctx)}</div>` : ''}<div class="qb-choices">${question.choices.map((choice, index) => `<div class="qb-choice"><span class="qb-label">${labels[index] ?? String(index + 1)}</span><div class="qb-choice-content">${renderBlocks(choice.content, ctx)}</div></div>`).join('')}</div><h3>정답: ${escapeHtml(answers.join(', ') || '미지정')}</h3><h3>해설</h3>${question.explanation.length ? renderBlocks(question.explanation, ctx) : '<p>해설이 없습니다.</p>'}<p class="qb-objective">학습목표: ${escapeHtml(question.objectiveCode ?? '미지정')}</p></article></body></html>`;
+}
+
 function fontStyles(css: string | undefined): string {
   if (!css) return '';
   // 앱이 전달한 폰트 CSS도 외부 요청과 style 태그 탈출을 허용하지 않는다.
@@ -94,7 +133,13 @@ function fontStyles(css: string | undefined): string {
   if (clean.replace(/@font-face\s*\{[^{}]*\}/giu, '').trim()) return '';
   for (const face of faces) {
     const urls = [...face.matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/giu)];
-    if (urls.some((match) => !/^data:(?:font\/[a-z0-9.-]+|application\/[a-z0-9.-]+);base64,[a-z0-9+/=]+$/iu.test(match[2]))) return '';
+    if (
+      urls.some(
+        (match) =>
+          !/^data:(?:font\/[a-z0-9.-]+|application\/[a-z0-9.-]+);base64,[a-z0-9+/=]+$/iu.test(match[2]),
+      )
+    )
+      return '';
     const withoutUrls = face.replace(/url\(\s*(['"]?)(.*?)\1\s*\)/giu, '');
     if (/url\s*\(|@import|(?:https?|file):/iu.test(withoutUrls)) return '';
   }
@@ -105,19 +150,33 @@ function renderPart(snapshot: ExamSnapshot, part: ExportPart): string {
   const ctx = { assets: snapshot.assets };
   const title = `<h1>${escapeHtml(snapshot.title)}</h1><h2>${partNames[part]}</h2>`;
   if (part === 'questions') {
-    return `${title}<div class="qb-student">성명: ____________________　점수: __________</div><div class="qb-questions">${snapshot.items.map((item) => {
-      const number = `<span class="qb-number">${escapeHtml(item.number)}.</span>`;
-      if (item.blank) return `<article class="qb-item qb-blank">${number} (출제 가능한 문제가 없어 비워 둔 번호입니다)</article>`;
-      const first = item.stem[0];
-      const stem = `<p class="qb-stem-first" style="--number-width: ${String(item.number).length + 1.5}ch">${number} ${first?.type === 'paragraph' ? first.runs.map(renderRun).join('') : ''}</p>${renderBlocks(first?.type === 'paragraph' ? item.stem.slice(1) : item.stem, ctx)}`;
-      return `<article class="qb-item"><div class="qb-stem">${stem}</div>${item.passage?.length ? `<div class="qb-passage">${renderBlocks(item.passage, ctx)}</div>` : ''}<div class="qb-choices">${item.choices.map((choice) =>
-        `<div class="qb-choice"><span class="qb-label">${escapeHtml(choice.label)}</span><div class="qb-choice-content">${renderBlocks(choice.content, ctx)}</div></div>`).join('')}</div></article>`;
-    }).join('') || '<p>문항이 없습니다.</p>'}</div>`;
+    return `${title}<div class="qb-student">성명: ____________________　점수: __________</div><div class="qb-questions">${
+      snapshot.items
+        .map((item) => {
+          const number = `<span class="qb-number">${escapeHtml(item.number)}.</span>`;
+          if (item.blank)
+            return `<article class="qb-item qb-blank">${number} (출제 가능한 문제가 없어 비워 둔 번호입니다)</article>`;
+          const first = item.stem[0];
+          const stem = `<p class="qb-stem-first" style="--number-width: ${String(item.number).length + 1.5}ch">${number} ${first?.type === 'paragraph' ? first.runs.map(renderRun).join('') : ''}</p>${renderBlocks(first?.type === 'paragraph' ? item.stem.slice(1) : item.stem, ctx)}`;
+          return `<article class="qb-item"><div class="qb-stem">${stem}</div>${item.passage?.length ? `<div class="qb-passage">${renderBlocks(item.passage, ctx)}</div>` : ''}<div class="qb-choices">${item.choices
+            .map(
+              (choice) =>
+                `<div class="qb-choice"><span class="qb-label">${escapeHtml(choice.label)}</span><div class="qb-choice-content">${renderBlocks(choice.content, ctx)}</div></div>`,
+            )
+            .join('')}</div></article>`;
+        })
+        .join('') || '<p>문항이 없습니다.</p>'
+    }</div>`;
   }
   if (part === 'answers') {
     const rows: string[] = [];
     for (let i = 0; i < snapshot.items.length; i += 5) {
-      const cells = snapshot.items.slice(i, i + 5).map((item) => `<th scope="row">${escapeHtml(item.number)}</th><td>${item.blank ? '—' : escapeHtml(item.answerLabels.join(', '))}</td>`);
+      const cells = snapshot.items
+        .slice(i, i + 5)
+        .map(
+          (item) =>
+            `<th scope="row">${escapeHtml(item.number)}</th><td>${item.blank ? '—' : escapeHtml(item.answerLabels.join(', '))}</td>`,
+        );
       while (cells.length < 5) cells.push('<td></td><td></td>');
       rows.push(`<tr>${cells.join('')}</tr>`);
     }
@@ -126,7 +185,10 @@ function renderPart(snapshot: ExamSnapshot, part: ExportPart): string {
   return `${title}${snapshot.items.map((item) => `<article class="qb-item qb-explanation"><h3>${escapeHtml(item.number)}. 정답: ${item.blank ? '—' : escapeHtml(item.answerLabels.join(', '))}</h3>${item.blank ? '<p>비워 둔 번호입니다.</p>' : `${renderBlocks(item.explanation, ctx)}<p class="qb-objective">학습목표: ${escapeHtml(item.objectiveCode ?? '미지정')}</p>`}</article>`).join('')}`;
 }
 
-export function renderExamHtml(snapshots: ExamSnapshot[], options: RenderHtmlOptions): RenderedExamDocument[] {
+export function renderExamHtml(
+  snapshots: ExamSnapshot[],
+  options: RenderHtmlOptions,
+): RenderedExamDocument[] {
   const template = resolveTemplate(options.templateId);
   const parts = partOrder.filter((part) => options.parts.includes(part));
   if (!parts.length) return [];
@@ -135,9 +197,15 @@ export function renderExamHtml(snapshots: ExamSnapshot[], options: RenderHtmlOpt
     return groups.map((group): RenderedExamDocument => {
       const part = options.combineParts ? 'combined' : group[0];
       const title = `${snapshot.title} ${part === 'combined' ? '통합본' : partNames[part]}`;
-      const sections = group.map((entry) => `<section class="qb-part qb-${entry}-part">${renderPart(snapshot, entry)}</section>`).join('');
-      return { part, examId: snapshot.examId, title,
-        html: `<!doctype html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(title)}</title>${fontStyles(options.fontFaceCss)}<style>${standardCss}</style></head><body data-template="${escapeHtml(template.id)}"><main>${sections}</main></body></html>` };
+      const sections = group
+        .map((entry) => `<section class="qb-part qb-${entry}-part">${renderPart(snapshot, entry)}</section>`)
+        .join('');
+      return {
+        part,
+        examId: snapshot.examId,
+        title,
+        html: `<!doctype html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(title)}</title>${fontStyles(options.fontFaceCss)}<style>${standardCss}</style></head><body data-template="${escapeHtml(template.id)}"><main>${sections}</main></body></html>`,
+      };
     });
   });
 }

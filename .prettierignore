@@ -1,0 +1,10 @@
+node_modules/
+out/
+dist/
+release/
+coverage/
+package-lock.json
+.tmp-realcheck/
+.tmp-stage5a/
+docs/
+*.md

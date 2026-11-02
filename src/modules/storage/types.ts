@@ -1,7 +1,11 @@
 import type Database from 'better-sqlite3';
 import type {
-  AssetRepository, HistoryRepository, PassageGroupRepository, QuestionRepository,
-  RuleSetRepository, SnapshotRepository,
+  AssetRepository,
+  HistoryRepository,
+  PassageGroupRepository,
+  QuestionRepository,
+  RuleSetRepository,
+  SnapshotRepository,
 } from '../../contracts/index';
 
 export interface Migration {

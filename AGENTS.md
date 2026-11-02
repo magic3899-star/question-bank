@@ -28,6 +28,8 @@
 - 공개 함수는 `index.ts` 로만 export. 모듈 외부는 `index.ts` 만 import 한다.
 - 에러 메시지·진단 메시지는 사용자에게 보일 수 있으므로 한국어로, 무엇이 문제이고 어떻게 고치는지 쓴다.
 - 주석은 "왜"만 적는다. 자명한 주석을 달지 않는다.
+- **코드 형식**: Prettier(`.prettierrc.json`, 줄 폭 110)를 따른다. 작업이 끝나면 `npm.cmd run format` 을 실행하고 `npm.cmd run format:check` 를 통과시킨다. 여러 문장을 한 줄로 이어 붙이거나 JSX 를 한 줄로 압축하지 않는다(사람이 읽고 고칠 수 있어야 한다).
+- **파일 단위 분리**: 화면 하나·컴포넌트 하나·훅 하나가 각자 파일을 가진다. 한 파일이 약 300줄을 넘으면 의미 단위로 나눈다. 수정할 때 다른 화면을 건드리지 않아도 되게 하는 것이 목적이다.
 
 ## 명령
 
@@ -35,7 +37,8 @@
 - `npm run test:fast` — 작업 중 빠른 확인용(무거운 `tests/e2e`, `tests/invariants` 제외). **마무리 전에는 반드시 `npm test` 전체를 통과시킨다.**
 - `npm run lint:deps` — 의존 규칙 검사 (dependency-cruiser)
 - `npm run typecheck` — tsc --noEmit
-- 작업 완료 전에 위 3개를 모두 통과시킨다.
+- `npm run format:check` — 코드 형식 검사 (Prettier)
+- 작업 완료 전에 위 검사(전체 `npm test`, typecheck, lint:deps, format:check)를 모두 통과시킨다. 앱 코드를 바꿨다면 `npm run build` 도.
 
 ## 최종 보고 형식 (마지막 메시지)
 

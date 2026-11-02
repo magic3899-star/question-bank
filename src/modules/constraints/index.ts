@@ -4,4 +4,9 @@ import { noDuplicateContent } from './no-duplicate-content/index';
 import { distinctBySegment } from './distinct-by-segment/index';
 import { excludeRecent } from './exclude-recent/index';
 
-export const standardConstraints: Constraint[] = [noOverlapAcrossExams, noDuplicateContent, distinctBySegment, excludeRecent];
+export const standardConstraints: Constraint[] = [
+  noOverlapAcrossExams,
+  noDuplicateContent,
+  distinctBySegment,
+  excludeRecent,
+];

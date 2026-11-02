@@ -1,0 +1,30 @@
+appId: kr.publisher.questionbank
+productName: 문제은행
+executableName: QuestionBank
+electronDist: node_modules/electron/dist
+directories:
+  output: release
+files:
+  - out/**/*
+  - package.json
+npmRebuild: false
+asar: true
+asarUnpack:
+  - '**/node_modules/better-sqlite3/**'
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: QuestionBank-Setup-${version}.exe
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 문제은행
+publish:
+  provider: github
+  owner: magic3899-star
+  repo: question-bank
