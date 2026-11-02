@@ -4,8 +4,8 @@ import { makeQuestion } from '../../../tests/fixtures/builders';
 import { runValidators, standardValidators } from './index';
 
 it('모든 검수 플러그인은 고유한 ID와 한국어 이름을 가진다', () => {
-  expect(standardValidators).toHaveLength(9);
-  expect(new Set(standardValidators.map((v) => v.id)).size).toBe(9);
+  expect(standardValidators).toHaveLength(10);
+  expect(new Set(standardValidators.map((v) => v.id)).size).toBe(10);
   expect(standardValidators.every((v) => v.kind === 'validator' && v.label)).toBe(true);
   expect(runValidators(standardValidators, [])).toEqual([]);
 });

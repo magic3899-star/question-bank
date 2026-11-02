@@ -5,6 +5,27 @@ import { flatCellText, snapshotCounts } from '../../../../tests/e2e/assertExport
 import { xlsxExporter } from './index';
 
 describe('Excel 출력기', () => {
+  it('run 개수 대신 합친 텍스트·열 너비·줄바꿈으로 높이를 추정하고 409pt로 제한한다', async () => {
+    const snapshot = structuredClone(makeExportSnapshot());
+    const base = snapshot.items[0];
+    base.passage = []; base.explanation = [];
+    base.choices.forEach((choice) => { choice.content = []; });
+    snapshot.items = Array.from({ length: 5 }, (_, index) => ({ ...structuredClone(base), number: index + 1 }));
+    snapshot.items[0].stem = [{ type: 'paragraph', runs: Array.from({ length: 20 }, (_, index) => ({ text: '가', bold: index % 2 === 0 })) }];
+    snapshot.items[1].stem = [{ type: 'paragraph', runs: [{ text: '가'.repeat(100) }] }];
+    snapshot.items[2].stem = [{ type: 'paragraph', runs: [{ text: '첫줄\n둘째줄\n셋째줄' }] }];
+    snapshot.items[3].stem = [{ type: 'paragraph', runs: [{ text: '가'.repeat(5000) }] }];
+    snapshot.items[4].stem = [{ type: 'image', assetId: 'stem', widthPx: 100, heightPx: 300 }];
+    const [file] = await xlsxExporter.export([snapshot], { ...exportOptions, parts: ['questions'] });
+    const sheet = (await readXlsx(file.data)).getWorksheet('문제')!;
+    expect(sheet.getRow(2).height).toBe(18);
+    expect(sheet.getRow(3).height).toBe(75);
+    expect(sheet.getRow(4).height).toBe(45);
+    expect(sheet.getRow(5).height).toBe(409);
+    expect(sheet.getRow(6).height).toBeGreaterThanOrEqual(300 * 0.75);
+    expect(sheet.getRow(6).height).toBeLessThanOrEqual(409);
+  });
+
   it('재개방한 시트의 셀·정답·서식·이미지·빈 번호를 검사한다', async () => {
     const snapshot = makeExportSnapshot();
     const [file] = await xlsxExporter.export([snapshot], { ...exportOptions, combineParts: true });
@@ -14,7 +35,9 @@ describe('Excel 출력기', () => {
     for (const [index, item] of snapshot.items.entries()) {
       expect(text['문제'][index + 1][0]).toBe(String(item.number));
       if (item.blank) {
-        expect(text['문제'][index + 1][3]).toBe('(비워 둔 번호)');
+        expect(text['문제'][index + 1][3]).toBe('(출제 가능한 문제가 없어 비워 둔 번호입니다)');
+        expect(text['문제'][index + 1][1]).toBe('');
+        expect(text['해설'][index + 1][3]).toBe('');
         expect(text['정답표'][index + 1][1]).toBe('(비워 둔 번호)');
       } else {
         expect(text['문제'][index + 1][2]).toBe(flatCellText(item.passage ?? []));
@@ -28,8 +51,16 @@ describe('Excel 출력기', () => {
     let underline = 0; let images = 0;
     for (const sheet of workbook.worksheets) {
       expect(sheet.views[0]).toMatchObject({ state: 'frozen', ySplit: 1 });
+      expect(sheet.pageSetup).toMatchObject({ paperSize: 9, orientation: 'landscape', fitToPage: true,
+        fitToWidth: 1, fitToHeight: 0, printTitlesRow: '1:1', horizontalCentered: true,
+        margins: { left: 0.25, right: 0.25, top: 0.5, bottom: 0.5, header: 0.25, footer: 0.25 } });
       expect(sheet.getRow(1).getCell(1).font).toMatchObject({ name: '맑은 고딕', bold: true });
       images += sheet.getImages().length;
+      sheet.eachRow((row) => {
+        expect(row.height).toBeGreaterThanOrEqual(18);
+        expect(row.height).toBeLessThanOrEqual(409);
+        expect(row.getCell(1).alignment.horizontal).toBe('center');
+      });
       sheet.eachRow((row, index) => row.eachCell((cell) => {
         if (index > 1) expect(cell.alignment).toMatchObject({ vertical: 'top', wrapText: true });
         if (cell.value && typeof cell.value === 'object' && 'richText' in cell.value) {

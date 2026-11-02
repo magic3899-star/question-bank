@@ -6,6 +6,14 @@ const order: ExportPart[] = ['questions', 'answers', 'explanations'];
 const sheetNames = { questions: '문제', answers: '정답표', explanations: '해설' };
 const labels = Array.from('①②③④⑤⑥⑦⑧⑨⑩');
 
+function textHeight(text: string, width: number): number {
+  const lines = text.split('\n').reduce((sum, line) => {
+    const units = Array.from(line).reduce((total, char) => total + (/[^\u0000-\u007f]/u.test(char) ? 2 : 1), 0);
+    return sum + Math.max(1, Math.ceil(units / Math.max(1, width - 2)));
+  }, 0);
+  return Math.max(18, lines * 15);
+}
+
 function richText(blocks: Block[], snapshot: ExamSnapshot): ExcelJS.RichText[] {
   return blocks.flatMap((block, index): ExcelJS.RichText[] => {
     const prefix = index ? [{ text: '\n' }] : [];
@@ -45,7 +53,7 @@ function addImages(workbook: ExcelJS.Workbook, sheet: ExcelJS.Worksheet, snapsho
     placements.push({ id, offset: heightPx, width: width * scale, height: height * scale });
     heightPx += height * scale + 8;
   }
-  if (placements.length) sheet.getRow(row).height = Math.max(sheet.getRow(row).height ?? 30, heightPx * 0.75);
+  if (placements.length) sheet.getRow(row).height = Math.min(409, Math.max(sheet.getRow(row).height ?? 18, heightPx * 0.75));
   return () => {
     for (const placement of placements) {
       // ExcelJS의 소수 행 좌표 환산은 실제 EMU와 달라서 원시 오프셋으로 이미지 간격을 보존한다.
@@ -57,7 +65,10 @@ function addImages(workbook: ExcelJS.Workbook, sheet: ExcelJS.Worksheet, snapsho
 }
 
 function addSheet(workbook: ExcelJS.Workbook, snapshot: ExamSnapshot, part: ExportPart): void {
-  const sheet = workbook.addWorksheet(sheetNames[part], { views: [{ state: 'frozen', ySplit: 1 }] });
+  const sheet = workbook.addWorksheet(sheetNames[part], { views: [{ state: 'frozen', ySplit: 1 }],
+    pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+      printTitlesRow: '1:1', horizontalCentered: true,
+      margins: { left: 0.25, right: 0.25, top: 0.5, bottom: 0.5, header: 0.25, footer: 0.25 } } });
   const maxChoices = Math.max(0, ...snapshot.items.map((item) => item.choices.length));
   const headers = part === 'questions' ? ['번호', '학습목표', '예문', '문제', ...labels.slice(0, maxChoices), '정답']
     : part === 'answers' ? ['번호', '정답'] : ['번호', '정답', '해설', '학습목표'];
@@ -68,21 +79,20 @@ function addSheet(workbook: ExcelJS.Workbook, snapshot: ExamSnapshot, part: Expo
   });
   for (const item of snapshot.items) {
     const answer = item.blank ? '—' : item.answerLabels.join(', ');
-    const row = sheet.addRow(part === 'questions' ? [item.number, item.objectiveCode ?? '미지정', '', '',
+    const objective = item.blank ? '' : item.objectiveCode ?? '미지정';
+    const row = sheet.addRow(part === 'questions' ? [item.number, objective, '', '',
       ...Array.from({ length: maxChoices }, () => ''), answer]
-      : part === 'answers' ? [item.number, answer] : [item.number, answer, '', item.objectiveCode ?? '미지정']);
+      : part === 'answers' ? [item.number, answer] : [item.number, answer, '', objective]);
     const placeImages: (() => void)[] = [];
     const setBlocks = (col: number, blocks: Block[]): void => {
       const rich = richText(blocks, snapshot);
       row.getCell(col).value = { richText: rich };
-      const lines = rich.map((run) => run.text).join('').split('\n').reduce((sum, line) => {
-        const units = Array.from(line).reduce((width, char) => width + (/[^\u0000-\u007f]/u.test(char) ? 2 : 1), 0);
-        return sum + Math.max(1, Math.ceil(units / (sheet.getColumn(col).width ?? 22)));
-      }, 0);
-      placeImages.push(addImages(workbook, sheet, snapshot, blocks, row.number, col - 1, Math.max(28, lines * 18 + 8)));
+      const height = textHeight(rich.map((run) => run.text).join(''), sheet.getColumn(col).width ?? 22);
+      placeImages.push(addImages(workbook, sheet, snapshot, blocks, row.number, col - 1, height / 0.75 + 8));
     };
     if (item.blank) {
-      row.getCell(part === 'questions' ? 4 : part === 'answers' ? 2 : 3).value = '(비워 둔 번호)';
+      row.getCell(part === 'questions' ? 4 : part === 'answers' ? 2 : 3).value = part === 'questions'
+        ? '(출제 가능한 문제가 없어 비워 둔 번호입니다)' : '(비워 둔 번호)';
       row.eachCell({ includeEmpty: true }, (cell) => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F3F6' } };
       });
@@ -100,13 +110,18 @@ function addSheet(workbook: ExcelJS.Workbook, snapshot: ExamSnapshot, part: Expo
       cell.font = { name: '맑은 고딕', size: 10 };
       cell.alignment = { vertical: 'top', wrapText: true };
     });
-    const textHeights = Array.isArray(row.values) ? Array.from(row.values, (value) =>
-      typeof value === 'object' && value && 'richText' in value
-        ? Math.min(300, value.richText.reduce((n, run) => n + run.text.split('\n').length, 0) * 15) : 30) : [30];
-    row.height = Math.max(row.height ?? 30, ...textHeights);
+    row.getCell(1).alignment = { vertical: 'top', horizontal: 'center', wrapText: true };
+    const textHeights = Array.from({ length: headers.length }, (_, index) => {
+      const value = row.getCell(index + 1).value;
+      const text = value && typeof value === 'object' && 'richText' in value ? value.richText.map((run) => run.text).join('') : String(value ?? '');
+      return textHeight(text, sheet.getColumn(index + 1).width ?? 22);
+    });
+    row.height = Math.min(409, Math.max(row.height ?? 18, ...textHeights));
     placeImages.forEach((place) => place());
   }
   sheet.getRow(1).alignment = { vertical: 'top', wrapText: true };
+  sheet.getRow(1).getCell(1).alignment = { vertical: 'top', horizontal: 'center', wrapText: true };
+  sheet.getRow(1).height = 18;
 }
 
 export const xlsxExporter: Exporter = {

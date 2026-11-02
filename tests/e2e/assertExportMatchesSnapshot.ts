@@ -1,7 +1,7 @@
 import { deepStrictEqual, equal, ok } from 'node:assert/strict';
 import type { Block, ExamSnapshot } from '../../src/contracts/index';
 import { docxPlainText, inspectDocx, readXlsx, xlsxPlainText } from '../fixtures/extractText';
-import { htmlToPlainText } from '../fixtures/htmlText';
+import { htmlParagraphTexts, htmlToPlainText } from '../fixtures/htmlText';
 
 export function paragraphTexts(blocks: Block[]): string[] {
   return blocks.flatMap((block): string[] => block.type === 'paragraph' ? [block.runs.map((run) => run.text).join('')]
@@ -39,10 +39,11 @@ export function expectedDocxParagraphs(snapshot: ExamSnapshot, parts = ['questio
   if (parts.includes('questions')) {
     expected.push(`${snapshot.title} 문제지`, '성명: ____________________　점수: __________');
     for (const item of snapshot.items) {
-      expected.push(`${item.number}.`);
+      const first = item.blank ? undefined : item.stem[0];
+      expected.push(`${item.number}. ${first?.type === 'paragraph' ? first.runs.map((run) => run.text).join('') : ''}`);
       if (item.blank) expected.push('(출제 가능한 문제가 없어 비워 둔 번호입니다)');
       else {
-        expected.push(...paragraphTexts(item.stem), ...paragraphTexts(item.passage ?? []));
+        expected.push(...paragraphTexts(first?.type === 'paragraph' ? item.stem.slice(1) : item.stem), ...paragraphTexts(item.passage ?? []));
         for (const choice of item.choices) {
           const first = choice.content[0];
           expected.push(`${choice.label} ${first?.type === 'paragraph' ? first.runs.map((run) => run.text).join('') : ''}`,
@@ -53,6 +54,7 @@ export function expectedDocxParagraphs(snapshot: ExamSnapshot, parts = ['questio
   }
   if (parts.includes('answers')) {
     expected.push(`${snapshot.title} 정답지`);
+    if (snapshot.items.length) expected.push(...Array.from({ length: 5 }, () => ['번호', '정답']).flat());
     for (const item of snapshot.items) expected.push(String(item.number), item.blank ? '—' : item.answerLabels.join(', '));
   }
   if (parts.includes('explanations')) {
@@ -78,10 +80,14 @@ function assertHtml(snapshot: ExamSnapshot, html: string): void {
     const actual = questions[index][1];
     if (item.blank) equal(htmlToPlainText(actual), `${item.number}. (출제 가능한 문제가 없어 비워 둔 번호입니다)`);
     else {
-      const tokens = [...actual.matchAll(/<(?:span class="qb-(?:number|label)"|p\b[^>]*)>([\s\S]*?)<\/(?:span|p)>/gu)]
-        .map((match) => htmlToPlainText(match[1]));
-      deepStrictEqual(tokens, [`${item.number}.`, ...paragraphTexts(item.stem), ...paragraphTexts(item.passage ?? []),
+      const tokens = [...actual.matchAll(/<(span|p)\b([^>]*)>([\s\S]*?)<\/\1>/gu)]
+        .filter((match) => match[1] === 'p' || /class="qb-(?:number|label)"/u.test(match[2]))
+        .map((match) => htmlToPlainText(match[3]));
+      const first = item.stem[0];
+      deepStrictEqual(tokens, [`${item.number}. ${first?.type === 'paragraph' ? first.runs.map((run) => run.text).join('') : ''}`,
+        ...paragraphTexts(first?.type === 'paragraph' ? item.stem.slice(1) : item.stem), ...paragraphTexts(item.passage ?? []),
         ...item.choices.flatMap((choice) => [choice.label, ...paragraphTexts(choice.content)])], `HTML ${item.number}번 내용`);
+      equal(htmlParagraphTexts(actual)[0], tokens[0], 'HTML 번호와 첫 본문이 한 문단이어야 합니다.');
     }
   }
   const answers = [...section('answers').matchAll(/<th scope="row">(\d+)<\/th><td>([\s\S]*?)<\/td>/gu)]
@@ -128,12 +134,12 @@ export async function assertExportMatchesSnapshot(snapshot: ExamSnapshot, output
   deepStrictEqual(cells['문제'][0], ['번호', '학습목표', '예문', '문제', ...Array.from('①②③④⑤⑥⑦⑧⑨⑩').slice(0, width), '정답']);
   for (const [index, item] of snapshot.items.entries()) {
     const answer = item.blank ? '—' : item.answerLabels.join(', ');
-    deepStrictEqual(cells['문제'][index + 1], [String(item.number), item.objectiveCode ?? '미지정',
-      item.blank ? '' : flatCellText(item.passage ?? []), item.blank ? '(비워 둔 번호)' : flatCellText(item.stem),
+    deepStrictEqual(cells['문제'][index + 1], [String(item.number), item.blank ? '' : item.objectiveCode ?? '미지정',
+      item.blank ? '' : flatCellText(item.passage ?? []), item.blank ? '(출제 가능한 문제가 없어 비워 둔 번호입니다)' : flatCellText(item.stem),
       ...Array.from({ length: width }, (_, choice) => item.choices[choice] ? flatCellText(item.choices[choice].content) : ''), answer], `Excel ${item.number}번 내용`);
     deepStrictEqual(cells['정답표'][index + 1], [String(item.number), item.blank ? '(비워 둔 번호)' : answer]);
     deepStrictEqual(cells['해설'][index + 1], [String(item.number), answer,
-      item.blank ? '(비워 둔 번호)' : flatCellText(item.explanation), item.objectiveCode ?? '미지정']);
+      item.blank ? '(비워 둔 번호)' : flatCellText(item.explanation), item.blank ? '' : item.objectiveCode ?? '미지정']);
   }
   const workbook = await readXlsx(output.xlsx);
   let underline = 0;

@@ -11,17 +11,17 @@ export function parseWordXml(xml: string) {
   } }).parseFromString(xml, 'application/xml');
 }
 
-function nodeText(node: Node): string {
+export function wordNodeText(node: Node): string {
   if (node.namespaceURI === wordNamespace) {
     if (node.localName === 't') return node.textContent ?? '';
     if (['br', 'cr'].includes(node.localName ?? '')) return '\n';
     if (node.localName === 'tab') return '\t';
   }
-  return Array.from(node.childNodes ?? []).map(nodeText).join('');
+  return Array.from(node.childNodes ?? []).map(wordNodeText).join('');
 }
 
 export function wordParagraphs(root: Element): string[] {
-  return Array.from(root.getElementsByTagNameNS(wordNamespace, 'p')).map(nodeText);
+  return Array.from(root.getElementsByTagNameNS(wordNamespace, 'p')).map(wordNodeText);
 }
 
 export async function inspectDocx(bytes: Uint8Array) {

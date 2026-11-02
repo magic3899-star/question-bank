@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import type { ExamSnapshot, Question } from '../../src/contracts/index';
 import { verifySnapshot } from '../../src/modules/exam-snapshot/index';
+import { referencesChoiceLabels } from '../../src/modules/content-model/index';
 
 export function assertSnapshotMatchesSource(snapshot: ExamSnapshot, sourceQuestionsById: ReadonlyMap<string, Question>): void {
   assert.deepStrictEqual(verifySnapshot(snapshot), [], '확정본 자체 무결성 검사에 실패했습니다.');
@@ -14,6 +15,10 @@ export function assertSnapshotMatchesSource(snapshot: ExamSnapshot, sourceQuesti
     assert.deepStrictEqual(item.explanation, source.explanation, '해설이 원본 그대로 보존되지 않았습니다.');
     assert.equal(item.objectiveCode, source.objectiveCode, '학습목표가 변했습니다.');
     assert.equal(item.grade, source.grade, '등급이 변했습니다.');
+    if (referencesChoiceLabels([...source.explanation, ...source.stem, ...(source.passage ?? [])])) {
+      assert.deepStrictEqual(item.choices.map((choice) => choice.sourceChoiceId), source.choices.map((choice) => choice.id),
+        '해설·본문의 선지 번호 참조와 선지 순서가 어긋납니다.');
+    }
     assert.equal(item.choices.length, source.choices.length, '선지 개수가 변했습니다.');
     assert.equal(new Set(item.choices.map((choice) => choice.sourceChoiceId)).size, item.choices.length, '선지 ID가 중복되었습니다.');
     const originalChoices = new Map(source.choices.map((choice) => [choice.id, choice]));

@@ -1,5 +1,5 @@
 import type { AssetData, Question, RuleSet } from '../../src/contracts/index';
-import { sha256Hex } from '../../src/modules/content-model/index';
+import { referencesChoiceLabels, sha256Hex } from '../../src/modules/content-model/index';
 import { makeQuestion, makeRuleSet, para } from './builders';
 
 export function makeExamBank(): { questions: Question[]; assets: Record<string, AssetData> } {
@@ -14,17 +14,17 @@ export function makeExamBank(): { questions: Question[]; assets: Record<string, 
     const id = `fake-${i}`;
     const question = makeQuestion({ id, subject, grade: 'A',
       objectiveCode: `${subjectName} ${1 + Math.floor(local / 50)}-${1 + local % 10}-${local + 1}`,
-      passage: [para(`가짜 예문 ${id}  끝 공백 `, { underline: true }),
+      passage: [para(`가짜 예문 ${id}${i % 21 === 14 ? ' ⑩ 참조' : ''}  끝 공백 `, { underline: true }),
         { type: 'image', assetId: 'passage', widthPx: 48, heightPx: 48, alt: `가짜 그림 ${id}` },
         { type: 'table', rows: [[[para(`보기 상자 ${id}`),
           { type: 'table', rows: [[[{ type: 'image', assetId: 'passage' }], [para(`중첩 셀 ${id}`)]]] }]]] }],
-      stem: [para(`가짜 본문 ${id}`, { bold: true }),
+      stem: [para(`가짜 본문 ${id}${i % 21 === 7 ? ' ② 참조' : ''}`, { bold: true }),
         { type: 'table', rows: [[[para(`본문 표 ${id}`)], [{ type: 'image', assetId: 'stem' }]]] }],
       choices: Array.from({ length: 5 }, (_, j) => ({ id: `c${j}`, fixedPosition: j === 2 && i % 3 === 0,
         content: [para(`가짜 선지 ${id}/${j}`, { underline: j === 1 }),
           ...(j === 4 ? [{ type: 'image' as const, assetId: 'choice' }] : [])] })),
       answerChoiceIds: i % 4 === 0 ? ['c0', 'c3'] : [`c${i % 5}`],
-      explanation: [para(`가짜 해설 ${id}`, { italic: true }), { type: 'image', assetId: 'explanation' }],
+      explanation: [para(`가짜 해설 ${id}${i % 7 === 0 ? ' ①, ②, ④ 가짜 선지 설명' : ''}`, { italic: true }), { type: 'image', assetId: 'explanation' }],
       shufflePolicy: i % 7 === 0 ? 'lock-all' : 'free',
     });
     return question;
@@ -33,6 +33,9 @@ export function makeExamBank(): { questions: Question[]; assets: Record<string, 
   for (let i = 49; i < questions.length; i += 50) {
     questions[i].stem = structuredClone(questions[i - 1].stem);
     questions[i].passage = structuredClone(questions[i - 1].passage);
+  }
+  for (const question of questions) {
+    if (referencesChoiceLabels([...question.explanation, ...question.stem, ...(question.passage ?? [])])) question.shufflePolicy = 'lock-all';
   }
   return { questions, assets };
 }

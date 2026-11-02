@@ -12,3 +12,7 @@ export function htmlToPlainText(html: string): string {
       return named[entity.toLowerCase()];
     });
 }
+
+export function htmlParagraphTexts(html: string): string[] {
+  return [...html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gu)].map((match) => htmlToPlainText(match[1]));
+}

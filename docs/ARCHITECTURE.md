@@ -57,7 +57,10 @@ exporters/*          → contracts, content-model, render-html   (storage 금지
 history              → contracts
 backup               → contracts
 updater              → (없음)
-app                  → 모두 (조립 전용 루트)
+app/shared           → contracts                          (main↔renderer IPC 타입만, 로직 없음)
+app/main             → 모든 src/modules, src/core, app/shared   (조립 전용 루트, Node/Electron)
+app/preload          → app/shared                          (contextBridge 로 window.qb 노출)
+app/renderer         → app/shared, contracts, content-model, render-html, objective-code  (브라우저 전용: storage·importers·exporters·node:* 금지)
 ```
 
 - 같은 계층의 모듈끼리(예: `exporters/pdf` ↔ `exporters/docx`)도 서로 import 하지 않는다.
@@ -105,7 +108,23 @@ storage ─후보→ selector(+rules+constraints) → shuffler → exam-snapshot
 - 의존 검사: dependency-cruiser
 - 출력: PDF = Electron printToPDF(HTML), DOCX = `docx`, XLSX = `exceljs`
 - 가져오기(docx): jszip + XML 직접 파싱 (서식·이미지·표·텍스트박스 보존 목적)
-- 폰트: Noto Sans KR 번들 (PDF 일관성)
+- 폰트: 시험지는 Windows 기본 바탕·맑은 고딕(Word·PDF 동일), UI 는 Pretendard 번들
+
+## 8-1. 앱 계층 (5단계)
+
+```
+src/app/shared/api.ts      IPC 계약: 채널 이름 + 요청/응답 타입 (renderer 와 main 이 공유하는 유일한 접점)
+src/app/main/              Electron main = 조립 루트. 모듈을 생성·연결하고 IPC 핸들러를 등록
+  services/*               화면 단위 서비스(문제은행, 가져오기, 시험 만들기, 출력, 백업…) — 모듈을 조합만 한다
+src/app/preload/           contextBridge 로 api.ts 의 함수만 노출 (ipcRenderer 직접 노출 금지)
+src/app/renderer/          React UI. 미리보기는 render-html 을 직접 사용(같은 HTML = 같은 PDF)
+```
+- 보안: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, 외부 URL 탐색·새 창 차단, CSP.
+- 데이터 위치: `%APPDATA%/QuestionBank/` (`data/bank.sqlite`, `settings.json`, `backups/`). 개발·검수 시 `QB_DATA_DIR` 로 다른 폴더 지정.
+- **SQLite 네이티브 모듈**: better-sqlite3 는 Node(테스트)용과 Electron(앱)용 빌드가 다르다(ABI). `node_modules` 의 빌드는 Node 용으로 두고, Electron 용 `better_sqlite3.node` 는 `native/electron/` 에 따로 받아 두며, Electron 에서 실행될 때만 `openStorage(..., { nativeBinding })` 로 지정한다. electron-builder 는 `npmRebuild: false` + 이 파일을 함께 포장.
+- 검수용 캡처 모드: `QB_CAPTURE_DIR` 가 지정되면 모든 화면을 차례로 열어 PNG 로 저장하고 종료(디자인 검수 자동화).
+- PDF: 숨은 BrowserWindow 에 render-html 결과를 넣고 `webContents.printToPDF` → `createPdfExporter` 의 `PdfRenderer` 로 주입.
+- 시험지 글꼴: Windows 기본 `바탕`·`맑은 고딕`(Word 출력과 동일). UI 글꼴: Pretendard(번들, OFL).
 
 ## 9. 역할 분담
 

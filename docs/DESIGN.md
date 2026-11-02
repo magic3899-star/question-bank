@@ -32,7 +32,7 @@
 - 본문/배경 대비 WCAG AA(4.5:1) 이상. 색만으로 상태를 구분하지 않는다(아이콘·문구 병기).
 
 ### 타이포
-- UI: **Pretendard**(번들, OFL). 시험지 미리보기/출력: **Noto Serif KR**(본문) + **Noto Sans KR**(제목) 번들.
+- UI: **Pretendard**(번들, OFL). 시험지 미리보기/출력: Windows 기본 **바탕**(본문) + **맑은 고딕**(제목) — Word 출력과 같은 글꼴이라 PDF·Word·미리보기가 일치한다(직원 PC 는 모두 한국어 Windows).
 - 크기: 12 / 13(기본 UI) / 14 / 16 / 20 / 24. 줄간격 1.5(본문 1.7).
 - 한국어 줄바꿈: `word-break: keep-all; overflow-wrap: anywhere;`
 - 숫자는 `font-variant-numeric: tabular-nums` (표·카운트).

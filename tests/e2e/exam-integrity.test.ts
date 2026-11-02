@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { Block, ExamSnapshot } from '../../src/contracts/index';
-import { canonicalJson, questionContentKey, sha256Hex } from '../../src/modules/content-model/index';
+import { canonicalJson, questionContentKey, referencesChoiceLabels, sha256Hex } from '../../src/modules/content-model/index';
 import { standardConstraints } from '../../src/modules/constraints/index';
 import { createSelector } from '../../src/modules/selector/index';
 import { shufflers } from '../../src/modules/shuffler/index';
@@ -28,6 +28,10 @@ function assertRun(snapshots: ExamSnapshot[]): void {
     for (const item of snapshot.items) if (!item.blank) {
       ids.push(item.sourceQuestionId);
       keys.push(questionContentKey(sources.get(item.sourceQuestionId)!));
+      const source = sources.get(item.sourceQuestionId)!;
+      if (referencesChoiceLabels([...source.explanation, ...source.stem, ...(source.passage ?? [])])) {
+        expect(item.choices.map((choice) => choice.sourceChoiceId)).toEqual(source.choices.map((choice) => choice.id));
+      }
     }
   }
   expect(new Set(ids).size).toBe(ids.length);
@@ -66,6 +70,27 @@ describe('선택 → 섞기 → 확정본 종단 무결성', () => {
     expect([...seen].some((id) => sources.get(id)!.shufflePolicy === 'lock-all')).toBe(true);
     expect([...seen].some((id) => sources.get(id)!.answerChoiceIds.length > 1)).toBe(true);
     expect([...seen].some((id) => sources.get(id)!.choices.some((c) => c.fixedPosition))).toBe(true);
+    for (const field of ['explanation', 'stem', 'passage'] as const) {
+      expect([...seen].some((id) => referencesChoiceLabels(sources.get(id)![field] ?? []))).toBe(true);
+    }
+  });
+
+  it('참조 문제의 잠금을 일부러 풀면 실제 섞기 결과가 원본 순서 검사에서 실패한다', () => {
+    const candidates = structuredClone(bank.questions.filter((question) => question.subject === 'law'
+      && referencesChoiceLabels([...question.explanation, ...question.stem, ...(question.passage ?? [])])));
+    candidates.forEach((question) => { question.shufflePolicy = 'free'; });
+    const data = input('reference-unlocked');
+    data.candidates = candidates;
+    data.rules = { ...data.rules, examCount: 1, constraints: [],
+      slots: [{ id: 'references', label: '가짜 참조 문항', count: candidates.length, filter: { kind: 'all' } }] };
+    const result = generateExams(data, deps);
+    expect(result.ok).toBe(true);
+    expect(result.snapshots).toHaveLength(1);
+    expect(result.snapshots[0].items.some((item) => item.choices.map((c) => c.sourceChoiceId).join(',')
+      !== sources.get(item.sourceQuestionId)!.choices.map((c) => c.id).join(','))).toBe(true);
+    const unlockedSources = new Map(candidates.map((question) => [question.id, question]));
+    expect(() => assertSnapshotMatchesSource(result.snapshots[0], unlockedSources))
+      .toThrow('해설·본문의 선지 번호 참조와 선지 순서가 어긋납니다.');
   });
 
   it('서로 다른 시드는 서로 다른 전체 확정본을 생성한다', () => {

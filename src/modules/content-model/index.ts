@@ -19,6 +19,12 @@ export function createExportFileName(title: string, part: ExportPart | 'combined
 
 const styleKeys = ['underline', 'bold', 'italic', 'superscript', 'subscript'] as const;
 
+export function referencesChoiceLabels(blocks: Block[]): boolean {
+  return blocks.some((block) => block.type === 'paragraph'
+    ? block.runs.some((run) => /[①-⑩]/u.test(run.text))
+    : block.type === 'table' && block.rows.some((row) => row.some(referencesChoiceLabels)));
+}
+
 export function blocksToPlainText(blocks: Block[]): string {
   return blocks.map((block) => {
     switch (block.type) {

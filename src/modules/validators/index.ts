@@ -5,12 +5,13 @@ import { choiceCountValidator } from './choice-count/index';
 import { answerValidValidator } from './answer-valid/index';
 import { emptyContentValidator } from './empty-content/index';
 import { choiceReferenceValidator } from './choice-reference/index';
+import { choiceLabelReferenceValidator } from './choice-label-reference/index';
 import { duplicateStemValidator } from './duplicate-stem/index';
 import { duplicateChoicesValidator } from './duplicate-choices/index';
 import { answerDistributionValidator } from './answer-distribution/index';
 
 export const standardValidators: Validator[] = [objectiveMissingValidator, objectiveFormatValidator,
-  choiceCountValidator, answerValidValidator, emptyContentValidator, choiceReferenceValidator,
+  choiceCountValidator, answerValidValidator, emptyContentValidator, choiceReferenceValidator, choiceLabelReferenceValidator,
   duplicateStemValidator, duplicateChoicesValidator, answerDistributionValidator];
 
 export function runValidators(validators: readonly Validator[], questions: readonly ValidatableQuestion[]): Diagnostic[] {

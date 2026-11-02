@@ -53,7 +53,7 @@ const partOrder: ExportPart[] = ['questions', 'answers', 'explanations'];
 
 const standardCss = `
 @page { size: A4; margin: 18mm; }
-:root { --surface: #FFFFFF; --text: #1A1D23; --text-muted: #5B6472; --border: #E2E5EA; --warn: #C77700; }
+:root { --surface: #FFFFFF; --surface-2: #F0F2F5; --text: #1A1D23; --text-muted: #5B6472; --border: #E2E5EA; --warn: #C77700; --item-spacing: 8pt; }
 * { box-sizing: border-box; }
 body { margin: 0; color: var(--text); background: var(--surface); font-family: 'Noto Serif KR','바탕','Batang',serif; font-size: 10pt; line-height: 1.7; word-break: keep-all; overflow-wrap: anywhere; }
 h1, h2, h3, .qb-student { font-family: 'Noto Sans KR','맑은 고딕','Malgun Gothic',sans-serif; }
@@ -64,7 +64,8 @@ p { margin: 0 0 4px; white-space: pre-wrap; }
 img { max-width: 100%; height: auto; object-fit: contain; }
 .qb-student { text-align: right; margin-bottom: 24px; }
 .qb-questions { column-count: 2; column-gap: 24px; column-rule: 1px solid var(--border); }
-.qb-item { break-inside: avoid; margin-bottom: 16px; }
+.qb-item { break-inside: avoid; margin-top: var(--item-spacing); margin-bottom: 16px; }
+.qb-stem-first { padding-left: var(--number-width); text-indent: calc(0px - var(--number-width)); }
 .qb-number, .qb-label { font-weight: bold; }
 .qb-passage { margin: 8px 0 8px 16px; }
 .qb-choice { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
@@ -74,6 +75,8 @@ img { max-width: 100%; height: auto; object-fit: contain; }
 .qb-table td, .qb-answer-grid td, .qb-answer-grid th { border: 1px solid var(--border); padding: 4px 8px; vertical-align: top; }
 .qb-box { border: 1px solid var(--text); }
 .qb-answer-grid { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.qb-answer-grid td, .qb-answer-grid th { text-align: center; vertical-align: middle; }
+.qb-answer-grid thead th { background: var(--surface-2); font-weight: bold; }
 .qb-answer-grid caption { text-align: left; margin-bottom: 8px; }
 .qb-objective { color: var(--text-muted); margin-top: 8px; }
 .qb-warning { color: var(--warn); }
@@ -105,7 +108,9 @@ function renderPart(snapshot: ExamSnapshot, part: ExportPart): string {
     return `${title}<div class="qb-student">성명: ____________________　점수: __________</div><div class="qb-questions">${snapshot.items.map((item) => {
       const number = `<span class="qb-number">${escapeHtml(item.number)}.</span>`;
       if (item.blank) return `<article class="qb-item qb-blank">${number} (출제 가능한 문제가 없어 비워 둔 번호입니다)</article>`;
-      return `<article class="qb-item">${number}<div class="qb-stem">${renderBlocks(item.stem, ctx)}</div>${item.passage?.length ? `<div class="qb-passage">${renderBlocks(item.passage, ctx)}</div>` : ''}<div class="qb-choices">${item.choices.map((choice) =>
+      const first = item.stem[0];
+      const stem = `<p class="qb-stem-first" style="--number-width: ${String(item.number).length + 1.5}ch">${number} ${first?.type === 'paragraph' ? first.runs.map(renderRun).join('') : ''}</p>${renderBlocks(first?.type === 'paragraph' ? item.stem.slice(1) : item.stem, ctx)}`;
+      return `<article class="qb-item"><div class="qb-stem">${stem}</div>${item.passage?.length ? `<div class="qb-passage">${renderBlocks(item.passage, ctx)}</div>` : ''}<div class="qb-choices">${item.choices.map((choice) =>
         `<div class="qb-choice"><span class="qb-label">${escapeHtml(choice.label)}</span><div class="qb-choice-content">${renderBlocks(choice.content, ctx)}</div></div>`).join('')}</div></article>`;
     }).join('') || '<p>문항이 없습니다.</p>'}</div>`;
   }
@@ -116,7 +121,7 @@ function renderPart(snapshot: ExamSnapshot, part: ExportPart): string {
       while (cells.length < 5) cells.push('<td></td><td></td>');
       rows.push(`<tr>${cells.join('')}</tr>`);
     }
-    return `${title}<table class="qb-answer-grid"><caption>번호별 정답</caption><tbody>${rows.join('')}</tbody></table>`;
+    return `${title}<table class="qb-answer-grid"><caption>번호별 정답</caption><thead><tr>${'<th scope="col">번호</th><th scope="col">정답</th>'.repeat(5)}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
   }
   return `${title}${snapshot.items.map((item) => `<article class="qb-item qb-explanation"><h3>${escapeHtml(item.number)}. 정답: ${item.blank ? '—' : escapeHtml(item.answerLabels.join(', '))}</h3>${item.blank ? '<p>비워 둔 번호입니다.</p>' : `${renderBlocks(item.explanation, ctx)}<p class="qb-objective">학습목표: ${escapeHtml(item.objectiveCode ?? '미지정')}</p>`}</article>`).join('')}`;
 }

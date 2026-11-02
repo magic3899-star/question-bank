@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import { DOMParser } from '@xmldom/xmldom';
 import type { Element, Node } from '@xmldom/xmldom';
 import type { AssetData, Block, Diagnostic, DraftQuestion, ImportDraft, Importer, InlineRun } from '../../../contracts/index';
-import { blocksToPlainText, collectAssetIds, questionContentKey, sha256Hex } from '../../content-model/index';
+import { blocksToPlainText, collectAssetIds, questionContentKey, referencesChoiceLabels, sha256Hex } from '../../content-model/index';
 
 export interface LayoutProfile {
   id: string;
@@ -529,6 +529,14 @@ export const docxImporter: Importer = {
         }
         passages.set(key, location);
         indices.set(index, draft.questions.length);
+        if (options?.lockChoicesOnReference !== false && referencesChoiceLabels([
+          ...question.explanation, ...question.stem, ...(question.passage ?? []),
+        ])) {
+          question.shufflePolicy = 'lock-all';
+          draft.diagnostics.push({ severity: 'info', code: 'CHOICES_LOCKED_BY_REFERENCE',
+            message: `${location}, 문제 "${preview}": 해설·본문에 선지 번호(①~⑤)가 있어 선지 순서를 고정했습니다. 번호가 법 조항 등 선지와 무관하면 문제 편집에서 고정을 해제하세요`,
+            ref: { draftIndex: draft.questions.length } });
+        }
         draft.questions.push(item);
       }
       const usedAssets = new Set(draft.questions.flatMap(({ question }) => collectAssetIds([

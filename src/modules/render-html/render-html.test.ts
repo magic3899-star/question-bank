@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AssetData, Block, ExportPart } from '../../contracts/index';
 import { deepFreeze, makeRuleSet, makeSelectedExam, para } from '../../../tests/fixtures/builders';
 import { makeExamBank } from '../../../tests/fixtures/examBank';
-import { htmlToPlainText } from '../../../tests/fixtures/htmlText';
+import { htmlParagraphTexts, htmlToPlainText } from '../../../tests/fixtures/htmlText';
 import { buildSnapshot } from '../exam-snapshot/index';
 import { renderBlocks, renderExamHtml, resolveTemplate } from './index';
 
@@ -92,6 +92,24 @@ describe('순수 HTML 블록 렌더러', () => {
 });
 
 describe('회차별 시험지 HTML', () => {
+  it('번호와 첫 문단을 한 p에 두고 표·이미지 시작은 번호를 별도 p에 둔다', () => {
+    const snapshot = structuredClone(snapshots()[0]);
+    snapshot.items = snapshot.items.slice(0, 3);
+    snapshot.items[0].stem = [para('가짜 <본문>  끝 ', { underline: true }), para('둘째 줄')];
+    snapshot.items[1].stem = [{ type: 'table', rows: [[[para('가짜 첫 표')]]] }];
+    snapshot.items[2].stem = [{ type: 'image', assetId: 'stem' }];
+    const html = renderExamHtml([snapshot], options)[0].html;
+    const stems = [...html.matchAll(/<div class="qb-stem">([\s\S]*?)<\/div>/gu)].map((m) => m[1]);
+    expect(htmlParagraphTexts(stems[0])).toEqual([`${snapshot.items[0].number}. 가짜 <본문>  끝 `, '둘째 줄']);
+    expect(htmlParagraphTexts(stems[1])).toEqual([`${snapshot.items[1].number}. `, '가짜 첫 표']);
+    expect(htmlParagraphTexts(stems[2])).toEqual([`${snapshot.items[2].number}. `]);
+    expect(stems[0]).toMatch(/<p class="qb-stem-first"[^>]*><span class="qb-number">1\.<\/span> <u>가짜 &lt;본문&gt;  끝 <\/u><\/p>/u);
+    expect(html).toContain('margin-top: var(--item-spacing)');
+    expect(html).toContain('--item-spacing: 8pt');
+    expect(html).toContain('text-indent: calc(0px - var(--number-width))');
+    expect(html).toContain('break-inside: avoid');
+  });
+
   it('분리 시 회차×파트, 결합 시 회차마다 한 문서를 만들고 문제→정답→해설 순서다', () => {
     const data = snapshots();
     const separate = renderExamHtml(data, options);
@@ -128,8 +146,9 @@ describe('회차별 시험지 HTML', () => {
   it('정답을 5쌍씩 표에 배치하고 빈 번호는 대시, 해설은 정답·블록·학습목표를 포함한다', () => {
     const [questions, answers, explanations] = renderExamHtml(snapshots().slice(0, 1), options);
     const table = answers.html.slice(answers.html.indexOf('<table class="qb-answer-grid">'));
-    expect(table.match(/<tr>/gu)).toHaveLength(2);
-    expect(table.slice(0, table.indexOf('</tr>')).match(/<th scope="row">/gu)).toHaveLength(5);
+    expect(table.match(/<tr>/gu)).toHaveLength(3);
+    expect(table.slice(0, table.indexOf('</thead>')).match(/<th scope="col">번호<\/th><th scope="col">정답<\/th>/gu)).toHaveLength(5);
+    expect(table.slice(table.indexOf('<tbody>'), table.indexOf('</tbody>')).match(/<th scope="row">/gu)).toHaveLength(8);
     expect(table).toContain('<th scope="row">8</th><td>—</td>');
     expect(explanations.html).toContain('class="qb-item qb-explanation"');
     expect(explanations.html).toContain('학습목표: 법규');

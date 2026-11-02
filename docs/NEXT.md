@@ -24,7 +24,7 @@
 ### 2. 5단계 — 앱과 화면 (`docs/DESIGN.md` 기준)
 - Electron + React(Vite) 뼈대, IPC, 모듈 조립(composition root = `src/app`). 문제 DB 위치 `%APPDATA%/<앱>/data/bank.sqlite`.
 - 화면: 홈 / 문제은행 / 가져오기(검수 표) / **문제 추가** / 시험 만들기(마법사) / 출제 규칙 편집기 / 출제 이력 / 설정.
-- PDF: Electron `printToPDF` 를 `createPdfExporter` 의 `PdfRenderer` 로 주입. 폰트 번들(Pretendard, Noto Serif KR/Sans KR)을 `fontFaceCss`(data URI)로 전달.
+- PDF: Electron `printToPDF` 를 `createPdfExporter` 의 `PdfRenderer` 로 주입. 시험지 글꼴은 Windows 기본 바탕·맑은 고딕(Word 와 동일), UI 만 Pretendard 번들.
 - **백업 모듈**: DB 가 WAL 모드이므로 체크포인트 후 복사. `openStorage` 의 `beforeMigrate` 에 연결.
 - **updater + 배포**: electron-updater + GitHub Releases, electron-builder(NSIS) 설치 파일, GitHub Actions 빌드(**Node ≥ 22.15** — `.dependency-cruiser-runner.cjs` 요구). 서명 없이 시작(SmartScreen 경고 안내문 필요).
 - 깨끗한 PC 에서 설치→문제 추가→시험 만들기→PDF/Word/Excel 저장→업데이트 확인 전체 흐름 검증.

@@ -9,7 +9,7 @@ import { createExportFileName } from '../../content-model/index';
 const names: Record<ExportPart, string> = { questions: '문제지', answers: '정답지', explanations: '해설지' };
 const order: ExportPart[] = ['questions', 'answers', 'explanations'];
 const blankText = '(출제 가능한 문제가 없어 비워 둔 번호입니다)';
-const p = (text: string, bold = false): Paragraph => new Paragraph({ children: [new TextRun({ text, bold })] });
+const p = (text: string, bold = false): Paragraph => new Paragraph({ keepLines: true, children: [new TextRun({ text, bold })] });
 
 function runChildren(run: InlineRun): TextRun[] {
   const style = { bold: run.bold, italics: run.italic, superScript: run.superscript,
@@ -19,30 +19,34 @@ function runChildren(run: InlineRun): TextRun[] {
     text === '\n' ? new CarriageReturn() : text === '\t' ? new Tab() : text) })];
 }
 
-function blocksToDocx(blocks: Block[], snapshot: ExamSnapshot, maxWidth = 300): (Paragraph | Table)[] {
-  return blocks.map((block): Paragraph | Table => {
-    if (block.type === 'paragraph') return new Paragraph({ children: block.runs.flatMap(runChildren) });
+function blocksToDocx(blocks: Block[], snapshot: ExamSnapshot, maxWidth = 300, keepNextLast = true): (Paragraph | Table)[] {
+  return blocks.map((block, index): Paragraph | Table => {
+    const keepNext = index < blocks.length - 1 || keepNextLast;
+    const paragraph = (children: ParagraphChild[]): Paragraph => new Paragraph({ keepLines: true, keepNext, children });
+    if (block.type === 'paragraph') return paragraph(block.runs.flatMap(runChildren));
     if (block.type === 'table') return new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: (block.rows.length ? block.rows : [[[]]]).map((row) => new TableRow({ children: (row.length ? row : [[]]).map((cell) => {
-        const children = blocksToDocx(cell, snapshot, maxWidth / Math.max(row.length, 1));
-        if (!(children.at(-1) instanceof Paragraph)) children.push(p(''));
+      rows: (block.rows.length ? block.rows : [[[]]]).map((row, rowIndex, rows) => new TableRow({ cantSplit: true, children: (row.length ? row : [[]]).map((cell, col, cells) => {
+        const cellKeepNext = keepNext || rowIndex < rows.length - 1 || col < cells.length - 1;
+        const needsEndParagraph = cell.at(-1)?.type !== 'paragraph';
+        const children = blocksToDocx(cell, snapshot, maxWidth / Math.max(row.length, 1), needsEndParagraph || cellKeepNext);
+        if (needsEndParagraph) children.push(new Paragraph({ keepLines: true, keepNext: cellKeepNext }));
         return new TableCell({ children, margins: { top: 100, bottom: 100, left: 100, right: 100 },
           borders: Object.fromEntries(['top', 'bottom', 'left', 'right'].map((side) => [side, { style: BorderStyle.SINGLE, size: 4, color: '000000' }])) });
       }) })),
     });
     const asset = Object.hasOwn(snapshot.assets, block.assetId) ? snapshot.assets[block.assetId] : undefined;
-    if (!asset) return p('[이미지 없음]');
+    if (!asset) return paragraph([new TextRun('[이미지 없음]')]);
     const types = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/bmp': 'bmp' } as const;
     const type = types[asset.mime.toLowerCase() as keyof typeof types];
-    if (!type) return p('[지원하지 않는 이미지]');
+    if (!type) return paragraph([new TextRun('[지원하지 않는 이미지]')]);
     const width = block.widthPx && block.widthPx > 0 && Number.isFinite(block.widthPx) ? block.widthPx : 200;
     const height = block.heightPx && block.heightPx > 0 && Number.isFinite(block.heightPx) ? block.heightPx : 150;
     const scale = Math.min(1, maxWidth / width);
     const image: ParagraphChild = new ImageRun({ type, data: Uint8Array.from(atob(asset.dataBase64), (c) => c.charCodeAt(0)),
       transformation: { width: width * scale, height: height * scale },
       altText: { title: block.alt ?? '', description: block.alt ?? '', name: block.assetId } });
-    return new Paragraph({ children: [image] });
+    return paragraph([image]);
   });
 }
 
@@ -52,36 +56,52 @@ function sections(snapshot: ExamSnapshot, part: ExportPart): ISectionOptions[] {
   const children: (Paragraph | Table)[] = [];
   for (const item of snapshot.items) {
     if (part === 'questions') {
-      children.push(p(`${item.number}.`, true));
-      if (item.blank) children.push(new Paragraph({ text: blankText, border: {
+      const firstStem = item.blank ? undefined : item.stem[0];
+      const restStem = firstStem?.type === 'paragraph' ? item.stem.slice(1) : item.stem;
+      const passage = item.passage ?? [];
+      const numberWidth = String(item.number).length * 110 + 170;
+      children.push(new Paragraph({ keepLines: true, keepNext: Boolean(item.blank || restStem.length || passage.length || item.choices.length), spacing: { before: 160 },
+        indent: { left: numberWidth, hanging: numberWidth }, children: [new TextRun({ text: `${item.number}. `, bold: true }),
+          ...(firstStem?.type === 'paragraph' ? firstStem.runs.flatMap(runChildren) : [])] }));
+      if (item.blank) children.push(new Paragraph({ keepLines: true, text: blankText, border: {
         top: { style: BorderStyle.DASHED, size: 4 }, bottom: { style: BorderStyle.DASHED, size: 4 },
         left: { style: BorderStyle.DASHED, size: 4 }, right: { style: BorderStyle.DASHED, size: 4 },
       } }));
       else {
-        children.push(...blocksToDocx(item.stem, snapshot), ...blocksToDocx(item.passage ?? [], snapshot));
-        for (const choice of item.choices) {
+        children.push(...blocksToDocx(restStem, snapshot, 300, Boolean(passage.length || item.choices.length)),
+          ...blocksToDocx(passage, snapshot, 300, item.choices.length > 0));
+        for (const [index, choice] of item.choices.entries()) {
           const first = choice.content[0];
-          children.push(new Paragraph({ indent: { left: 280, hanging: 280 }, children: [
+          const rest = first?.type === 'paragraph' ? choice.content.slice(1) : choice.content;
+          const lastChoice = index === item.choices.length - 1;
+          children.push(new Paragraph({ keepLines: true, keepNext: !lastChoice || rest.length > 0, indent: { left: 280, hanging: 280 }, children: [
             new TextRun({ text: `${choice.label} `, bold: true }),
             ...(first?.type === 'paragraph' ? first.runs.flatMap(runChildren) : []),
-          ] }), ...blocksToDocx(first?.type === 'paragraph' ? choice.content.slice(1) : choice.content, snapshot));
+          ] }), ...blocksToDocx(rest, snapshot, 300, !lastChoice));
         }
       }
     } else if (part === 'explanations') {
-      children.push(p(`${item.number}. 정답: ${item.blank ? '—' : item.answerLabels.join(', ')}`, true));
+      children.push(p(`${item.number}. 정답: ${item.blank ? '—' : item.answerLabels.join(', ')}`, true)
+        .with({ spacing: { before: 160 }, keepNext: true }));
       if (item.blank) children.push(p('비워 둔 번호입니다.'));
       else children.push(...blocksToDocx(item.explanation, snapshot), p(`학습목표: ${item.objectiveCode ?? '미지정'}`));
     }
   }
   if (part === 'answers') {
     const rows: TableRow[] = [];
+    const cell = (text: string, header = false): TableCell => new TableCell({
+      children: [p(text, header).with({ alignment: AlignmentType.CENTER })],
+      ...(header ? { shading: { fill: 'F0F2F5' } } : {}), verticalAlign: 'center',
+    });
+    if (snapshot.items.length) rows.push(new TableRow({ tableHeader: true, cantSplit: true,
+      children: Array.from({ length: 5 }, () => [cell('번호', true), cell('정답', true)]).flat() }));
     for (let index = 0; index < snapshot.items.length; index += 5) {
       const cells = snapshot.items.slice(index, index + 5).flatMap((item) => [
-        new TableCell({ children: [p(String(item.number))] }),
-        new TableCell({ children: [p(item.blank ? '—' : item.answerLabels.join(', '))] }),
+        cell(String(item.number)),
+        cell(item.blank ? '—' : item.answerLabels.join(', ')),
       ]);
-      while (cells.length < 10) cells.push(new TableCell({ children: [p('')] }));
-      rows.push(new TableRow({ children: cells }));
+      while (cells.length < 10) cells.push(cell(''));
+      rows.push(new TableRow({ cantSplit: true, children: cells }));
     }
     if (rows.length) children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows }));
   }
