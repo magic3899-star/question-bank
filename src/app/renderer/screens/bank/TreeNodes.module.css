@@ -1,0 +1,33 @@
+.tree-nodes {
+  list-style: none;
+  padding: 0 0 0 var(--space-2);
+  margin: 0;
+}
+.tree-nodes summary {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-1);
+}
+.tree-nodes summary::marker {
+  content: '';
+}
+.tree-nodes details[open] > summary > svg {
+  transform: rotate(90deg);
+}
+.tree-filter {
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}
+.tree-nodes button.selected,
+.tree-nodes button.selected:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tree-count {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}

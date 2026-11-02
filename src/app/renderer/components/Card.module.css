@@ -1,0 +1,10 @@
+.card {
+  padding: var(--space-6);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.card > h2 {
+  margin-bottom: var(--space-4);
+}

@@ -1,0 +1,17 @@
+.error-state {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-3);
+  text-align: center;
+  padding: var(--space-8) var(--space-6);
+  min-height: calc(var(--header-height) * 3);
+}
+.error-state p {
+  color: var(--text-muted);
+  max-width: var(--dialog-width);
+}
+.error-state > svg {
+  color: var(--danger);
+}

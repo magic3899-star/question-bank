@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import type { Settings } from '../shared/api';
+import type { Settings } from '../shared/index';
 
 export const defaultSettings: Settings = {
   theme: 'system',

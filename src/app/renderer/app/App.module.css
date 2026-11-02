@@ -1,0 +1,27 @@
+.app {
+  display: flex;
+  height: var(--viewport-height);
+  overflow: hidden;
+}
+.workspace {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.workspace > main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.recovery {
+  padding: var(--space-6);
+  text-align: center;
+}
+.recovery p {
+  margin-bottom: var(--space-4);
+}
+
+.path-caption {
+  color: var(--text-muted);
+}

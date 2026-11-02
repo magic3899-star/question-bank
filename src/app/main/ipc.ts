@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 import type { WebContents } from 'electron';
-import { channels } from '../shared/api';
-import type { AppInfo, Result } from '../shared/api';
+import { channels } from '../shared/index';
+import type { AppInfo, Result } from '../shared/index';
 import type { createBankService } from './services/bank';
 import type { createSettingsService } from './settings';
 

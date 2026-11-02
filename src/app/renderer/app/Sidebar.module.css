@@ -1,0 +1,97 @@
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: var(--line) solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6) var(--space-3) var(--space-4);
+}
+.brand {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  font-size: var(--font-xl);
+  font-weight: var(--weight-brand);
+  padding: 0 var(--space-3) var(--space-6);
+  white-space: nowrap;
+}
+.brand svg {
+  color: var(--accent);
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+.collapse-button {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  padding-inline: 0;
+  font-size: var(--font-xs);
+}
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  min-height: var(--button-height);
+}
+.sidebar nav a svg {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+.sidebar nav a:hover,
+.sidebar nav a.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.sidebar nav a.active {
+  font-weight: var(--weight-medium);
+}
+.nav-separator {
+  border-top: var(--line) solid var(--border);
+  margin: var(--space-3) var(--space-2);
+}
+.sidebar-bottom {
+  margin-top: auto;
+  padding: var(--space-4) var(--space-2) 0;
+  display: grid;
+  gap: var(--space-3);
+  border-top: var(--line) solid var(--border);
+}
+.local-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.local-status > span {
+  width: var(--space-2);
+  height: var(--space-2);
+  background: var(--success);
+  border-radius: var(--round);
+}
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed);
+  padding-inline: var(--space-2);
+}
+.collapsed .brand {
+  padding-inline: var(--space-3);
+}
+.collapsed .brand span,
+.collapsed nav a span,
+.collapsed .local-status {
+  display: none;
+}
+.collapsed nav a {
+  padding-inline: var(--space-3);
+}

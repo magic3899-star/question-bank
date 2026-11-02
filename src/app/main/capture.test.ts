@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserWindow } from 'electron';
 import { captureRoutes, writeCaptureFailure } from './capture';
+import { routeIds } from '../shared/index';
 
 describe('검수 캡처 실행기', () => {
   let directory: string;
@@ -18,7 +19,7 @@ describe('검수 캡처 실행기', () => {
       waitMs: number;
       error: string | null;
     }[];
-  it('준비 신호 이후에만 8라우트×2테마×2크기를 저장한다', async () => {
+  it('준비 신호 이후에만 공통 라우트×2테마×2크기를 저장한다', async () => {
     const size = vi.fn();
     const scripts: string[] = [];
     const window = {
@@ -38,11 +39,14 @@ describe('검수 캡처 실행기', () => {
       [1360, 840],
       [1100, 700],
     ]);
-    expect(report()).toHaveLength(32);
+    expect(report()).toHaveLength(routeIds.length * 4);
     expect(report().every((row) => row.error === null)).toBe(true);
-    expect(readdirSync(directory).filter((file) => file.endsWith('.png'))).toHaveLength(32);
+    expect(readdirSync(directory).filter((file) => file.endsWith('.png'))).toHaveLength(routeIds.length * 4);
     expect(scripts.some((script) => script.includes("dataset.captureTheme = 'dark'"))).toBe(true);
-    expect(scripts.filter((script) => script.includes('document.fonts.ready'))).toHaveLength(32);
+    expect(scripts.filter((script) => script.includes('document.fonts.ready'))).toHaveLength(
+      routeIds.length * 4,
+    );
+    expect([...new Set(report().map((row) => row.route))]).toEqual(routeIds);
   });
   it('준비 시간 초과에는 PNG 없이 오류를 기록하고 실패를 반환한다', async () => {
     const capturePage = vi.fn();
@@ -66,12 +70,12 @@ describe('검수 캡처 실행기', () => {
     expect(await captureRoutes(window, directory)).toBe(false);
     expect(report()[0].error).toBe('저장소 오류');
   });
-  it('창 시작 실패에도 32개의 대상과 원인을 기록한다', () => {
+  it('창 시작 실패에도 공통 라우트의 모든 대상과 원인을 기록한다', () => {
     writeCaptureFailure(directory, '창을 열 수 없습니다.');
-    expect(report()).toHaveLength(32);
-    expect(report()[31]).toMatchObject({
-      route: 'settings',
-      file: 'settings-dark-1100x700.png',
+    expect(report()).toHaveLength(routeIds.length * 4);
+    expect(report().at(-1)).toMatchObject({
+      route: routeIds.at(-1),
+      file: `${routeIds.at(-1)}-dark-1100x700.png`,
       error: '창을 열 수 없습니다.',
     });
   });

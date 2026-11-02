@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { channels } from '../shared/api';
-import type { QbApi } from '../shared/api';
+import { channels } from '../shared/index';
+import type { QbApi } from '../shared/index';
 
 const api: QbApi = {
   app: {

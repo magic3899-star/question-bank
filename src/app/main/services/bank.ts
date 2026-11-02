@@ -15,7 +15,7 @@ import type {
   QuestionDetail,
   QuestionSummary,
   Settings,
-} from '../../shared/api';
+} from '../../shared/index';
 
 export function requireText(value: unknown, label: string): string {
   if (typeof value !== 'string' || !value.trim() || value.length > 1000)
@@ -93,21 +93,22 @@ export function createBankService(storage: Storage, settings: () => Settings) {
         text: input.text,
         hasObjective: input.withoutObjective ? false : undefined,
       };
-      // storage의 문자열 접두 검색 대신 코드 구간을 비교해 1과 14가 섞이지 않게 한다.
-      if (input.objectivePrefix) {
-        const all = (await storage.questions.query(query)).filter(
-          (q) => q.objectiveCode && matchesObjectivePrefix(q.objectiveCode, input.objectivePrefix!),
-        );
-        return {
-          items: all.slice(input.offset, input.offset + input.limit).map(summarize),
-          total: all.length,
-        };
-      }
-      const [items, total] = await Promise.all([
-        storage.questions.query({ ...query, offset: input.offset, limit: input.limit }),
-        storage.questions.count(query),
-      ]);
-      return { items: items.map(summarize), total };
+      // 코드 구간 정렬과 누락 목표의 마지막 배치는 페이지를 자르기 전에 적용해야 한다.
+      const all = (await storage.questions.query(query)).filter(
+        (q) =>
+          !input.objectivePrefix ||
+          (q.objectiveCode && matchesObjectivePrefix(q.objectiveCode, input.objectivePrefix)),
+      );
+      const compareText = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+      all.sort((a, b) => {
+        const created = () => compareText(a.createdAt, b.createdAt) || compareText(a.id, b.id);
+        if (input.withoutObjective) return created();
+        const left = a.objectiveCode?.trim();
+        const right = b.objectiveCode?.trim();
+        if (!left || !right) return left ? -1 : right ? 1 : compareText(a.subject, b.subject) || created();
+        return compareText(a.subject, b.subject) || compareObjectiveCodes(left, right) || created();
+      });
+      return { items: all.slice(input.offset, input.offset + input.limit).map(summarize), total: all.length };
     },
     async objectiveTree(value: unknown): Promise<ObjectiveNode[]> {
       const subject = requireText(value, '과목');

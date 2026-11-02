@@ -57,7 +57,7 @@ exporters/*          → contracts, content-model, render-html   (storage 금지
 history              → contracts
 backup               → contracts
 updater              → (없음)
-app/shared           → contracts                          (main↔renderer IPC 타입만, 로직 없음)
+app/shared           → contracts                          (main↔renderer IPC 타입·라우트 메타데이터, 업무 로직 없음)
 app/main             → 모든 src/modules, src/core, app/shared   (조립 전용 루트, Node/Electron)
 app/preload          → app/shared                          (contextBridge 로 window.qb 노출)
 app/renderer         → app/shared, contracts, content-model, render-html, objective-code  (브라우저 전용: storage·importers·exporters·node:* 금지)
@@ -113,12 +113,17 @@ storage ─후보→ selector(+rules+constraints) → shuffler → exam-snapshot
 ## 8-1. 앱 계층 (5단계)
 
 ```
-src/app/shared/api.ts      IPC 계약: 채널 이름 + 요청/응답 타입 (renderer 와 main 이 공유하는 유일한 접점)
+src/app/shared/index.ts    main·preload·renderer가 공유하는 공개 진입점
+  api.ts                   IPC 계약: 채널 이름 + 요청/응답 타입
+  routes.ts                라우트 ID·제목·설명·아이콘 이름의 공통 표(브라우저 코드 없음)
 src/app/main/              Electron main = 조립 루트. 모듈을 생성·연결하고 IPC 핸들러를 등록
   services/*               화면 단위 서비스(문제은행, 가져오기, 시험 만들기, 출력, 백업…) — 모듈을 조합만 한다
 src/app/preload/           contextBridge 로 api.ts 의 함수만 노출 (ipcRenderer 직접 노출 금지)
 src/app/renderer/          React UI. 미리보기는 render-html 을 직접 사용(같은 HTML = 같은 PDF)
 ```
+- renderer의 `main.tsx`는 루트 렌더와 전역 스타일만 연결한다. `app/`은 셸·라우터·사이드바, `screens/<id>/`는 개별 화면, `components/`·`hooks/`·`lib/`는 화면 공용 코드다.
+- 화면 사이 import와 공통 컴포넌트→화면 import를 dependency-cruiser로 금지한다. 폴더 밖에서는 공개 `index.ts`만 사용한다. 화면·컴포넌트 스타일은 옆의 CSS Module, 전역은 `tokens.css`·`base.css`만 둔다.
+- `app/shared/routes.ts`의 단일 라우트 표를 renderer의 `app/routes.ts`가 화면 컴포넌트와 연결하고 main 캡처도 같은 ID 목록을 사용한다. 새 화면은 이 표에 항목 하나와 `screens/<id>/` 폴더를 추가한다. 자세한 규칙은 `docs/STAGE5A2.md` 참조.
 - 보안: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, 외부 URL 탐색·새 창 차단, CSP.
 - 데이터 위치: `%APPDATA%/QuestionBank/` (`data/bank.sqlite`, `settings.json`, `backups/`). 개발·검수 시 `QB_DATA_DIR` 로 다른 폴더 지정.
 - **SQLite 네이티브 모듈**: better-sqlite3 13 은 Node-API(N-API) 바이너리(`prebuilds/win32-x64.node`)를 패키지에 포함한다. Node-API 는 ABI 가 안정적이라 **테스트(Node 22)와 앱(Electron 45, 내장 Node 24)이 같은 파일**을 쓴다(2026-11-02 실제 확인). 재빌드 불필요: electron-builder `npmRebuild: false`, asar 에서는 better-sqlite3 를 풀어 둔다(`asarUnpack`). electron-vite 는 의존성을 번들하지 않고 외부화한다.

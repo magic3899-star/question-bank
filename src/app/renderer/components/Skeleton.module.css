@@ -1,0 +1,6 @@
+.skeleton {
+  height: var(--row-height);
+  margin: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}

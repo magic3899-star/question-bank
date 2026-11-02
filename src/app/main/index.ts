@@ -2,7 +2,7 @@ import { app, BrowserWindow, screen, shell } from 'electron';
 import { join } from 'node:path';
 import { openStorage } from '../../modules/storage/index';
 import type { Storage } from '../../modules/storage/index';
-import type { Settings } from '../shared/api';
+import type { Settings } from '../shared/index';
 import { backupBeforeMigrate, getPaths, preparePaths } from './paths';
 import { createSettingsService, defaultSettings } from './settings';
 import { createAppInfoService } from './services/app-info';

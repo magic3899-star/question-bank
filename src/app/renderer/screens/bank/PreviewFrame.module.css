@@ -1,0 +1,23 @@
+.frame {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.paper,
+.pending {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  background: var(--surface);
+}
+.pending {
+  visibility: hidden;
+}
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}

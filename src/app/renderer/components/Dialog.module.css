@@ -1,0 +1,16 @@
+.dialog {
+  color: var(--text);
+  background: var(--surface);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  width: var(--dialog-width);
+  box-shadow: var(--shadow-dialog);
+}
+.dialog p {
+  margin: var(--space-4) 0;
+}
+.dialog::backdrop {
+  background: var(--text-muted);
+  opacity: var(--dialog-opacity);
+}

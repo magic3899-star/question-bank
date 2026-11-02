@@ -1,0 +1,19 @@
+.tabs {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.tabs button {
+  background: transparent;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+.tabs button[aria-selected='true'] {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-card);
+}

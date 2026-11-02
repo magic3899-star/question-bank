@@ -11,7 +11,7 @@ vi.mock('electron', () => ({
   },
 }));
 import { registerIpc, toResult } from './ipc';
-import { channels } from '../shared/api';
+import { channels } from '../shared/index';
 import { defaultSettings } from './settings';
 
 describe('IPC 오류와 요청 경계', () => {

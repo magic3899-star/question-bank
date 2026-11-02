@@ -84,6 +84,40 @@ describe('화면용 문제은행 서비스', () => {
       children: [{ code: '법규 1-2-3', count: 1, children: [] }],
     });
   });
+  it('과목·목표 구간 숫자·생성 시각·ID 정렬 후 페이지를 자르고 목표 누락은 맨 뒤에 둔다', async () => {
+    const rows = [
+      { id: 'fake-0', subject: 'law', objectiveCode: '법규 14-1' },
+      { id: 'fake-10', subject: 'law', objectiveCode: '법규 1-10' },
+      { id: 'fake-2', subject: 'law', objectiveCode: '법규 1-2', createdAt: '2026-02-01T00:00:00Z' },
+      { id: 'fake-1', subject: 'law', objectiveCode: '법규 1-2' },
+      { id: 'fake-100', subject: 'law', objectiveCode: '법규 1-2' },
+      { id: 'first-subject', subject: 'anatomy', objectiveCode: '해부 10-1' },
+      { id: 'missing-first-subject', subject: 'anatomy', objectiveCode: undefined },
+      { id: 'missing-old', subject: 'law', objectiveCode: ' ', createdAt: '2025-01-01T00:00:00Z' },
+    ];
+    await storage.questions.upsertMany(rows.map((row) => makeQuestion(row)));
+    const all = await service().list({ offset: 0, limit: 50 });
+    expect(all.items.map((q) => q.id)).toEqual([
+      'first-subject',
+      'fake-1',
+      'fake-100',
+      'fake-2',
+      'fake-10',
+      'fake-0',
+      'missing-first-subject',
+      'missing-old',
+    ]);
+    expect((await service().list({ offset: 2, limit: 2 })).items.map((q) => q.id)).toEqual([
+      'fake-100',
+      'fake-2',
+    ]);
+    const filtered = await service().list({ subject: 'law', objectivePrefix: '법규 1', offset: 1, limit: 2 });
+    expect(filtered.items.map((q) => q.id)).toEqual(['fake-100', 'fake-2']);
+    expect(filtered.total).toBe(4);
+    expect(
+      (await service().list({ withoutObjective: true, offset: 0, limit: 50 })).items.map((q) => q.id),
+    ).toEqual(['missing-old', 'missing-first-subject']);
+  });
   it('본문·지문·선지·해설의 중첩 표까지 사용 자산만 중복 없이 반환한다', async () => {
     for (const id of ['used', 'unused'])
       await storage.assets.put({ id, mime: 'image/png', sha256: '', dataBase64: '' });

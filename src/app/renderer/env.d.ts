@@ -1,4 +1,4 @@
-import type { QbApi } from '../shared/api';
+import type { QbApi } from '../shared/index';
 declare global {
   interface Window {
     qb: QbApi;

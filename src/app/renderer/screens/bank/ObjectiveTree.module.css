@@ -1,0 +1,44 @@
+.filter-panel {
+  flex: 0 0 var(--tree-width);
+  overflow: auto;
+  padding: var(--space-4) var(--space-2);
+  border-right: var(--line) solid var(--border);
+}
+.filter-panel h2 {
+  margin: 0 var(--space-2) var(--space-4);
+  font-size: var(--font-md);
+}
+.filter-panel button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: left;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  width: 100%;
+  background: transparent;
+  min-height: var(--button-height);
+}
+.filter-panel button:hover {
+  background: var(--surface-2);
+}
+.filter-panel button.selected {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.filter-all > span,
+.tree-count {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}
+.check-filter {
+  display: flex;
+  gap: var(--space-1);
+  margin: var(--space-3) var(--space-1) var(--space-6);
+  color: var(--text-muted);
+}
+.subject-tree {
+  margin-bottom: var(--space-4);
+}

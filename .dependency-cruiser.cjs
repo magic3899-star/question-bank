@@ -39,10 +39,10 @@ module.exports = {
   forbidden: [
     ...[
       ['shared', '^src/contracts/index\\.ts$'],
-      ['preload', '^(?:src/app/shared/api\\.ts$|electron$|node_modules/electron/)'],
+      ['preload', '^(?:src/app/shared/index\\.ts$|electron$|node_modules/electron/)'],
       [
         'renderer',
-        '^(?:src/app/shared/api\\.ts$|src/contracts/index\\.ts$|src/modules/(?:content-model|render-html|objective-code)/index\\.ts$|node_modules/(?:react|react-dom|lucide-react|pretendard)/|.*\\.(?:css|woff2)$)',
+        '^(?:src/app/shared/index\\.ts$|src/contracts/index\\.ts$|src/modules/(?:content-model|render-html|objective-code)/index\\.ts$|node_modules/(?:react|react-dom|lucide-react|pretendard)/|.*\\.(?:css|woff2)$)',
       ],
     ].map(([layer, allowed]) => ({
       name: `app-${layer}-boundary`,
@@ -54,8 +54,27 @@ module.exports = {
     {
       name: 'renderer-no-node',
       severity: 'error',
-      from: { path: '^src/app/renderer/' },
+      from: { path: '^src/app/renderer/', pathNot: '\\.test\\.ts$' },
       to: { dependencyTypes: ['core'], path: '.*' },
+    },
+    ...readdirSync('src/app/renderer/screens', { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map(({ name }) => ({
+        name: `renderer-screen-${name}-isolation`,
+        severity: 'error',
+        comment: '다른 화면을 import 하지 말고 components/hooks/lib의 공개 index.ts로 공유하세요.',
+        from: { path: `^src/app/renderer/screens/${escapeRegex(name)}/` },
+        to: {
+          path: '^src/app/renderer/screens/',
+          pathNot: `^src/app/renderer/screens/${escapeRegex(name)}/`,
+        },
+      })),
+    {
+      name: 'renderer-components-no-screens',
+      severity: 'error',
+      comment: '공통 컴포넌트는 화면을 import 할 수 없습니다. 전달 인자나 공통 훅으로 분리하세요.',
+      from: { path: '^src/app/renderer/(?:components|hooks|lib)/' },
+      to: { path: '^src/app/renderer/screens/' },
     },
     {
       name: 'exporters-runtime-dependencies',

@@ -1,8 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { BrowserWindow } from 'electron';
+import { routeIds as routes } from '../shared/index';
 
-const routes = ['home', 'bank', 'import', 'add', 'generate', 'rules', 'history', 'settings'];
 export function writeCaptureFailure(directory: string, message: string): void {
   mkdirSync(directory, { recursive: true });
   const report = ['light', 'dark'].flatMap((theme) =>
