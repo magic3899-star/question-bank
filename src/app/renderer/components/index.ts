@@ -20,3 +20,8 @@ export { BlockListEditor } from './BlockListEditor';
 export { TreeNodes } from './TreeNodes';
 
 export { Select } from './Select';
+
+export { ExamPaper } from './ExamPaper';
+export { SlotBars } from './SlotBars';
+export { ExportOptions } from './ExportOptions';
+export { DiagnosticSummary } from './DiagnosticSummary';

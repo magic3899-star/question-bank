@@ -1,0 +1,13 @@
+.path-caption {
+  color: var(--text-muted);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+.actions svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}

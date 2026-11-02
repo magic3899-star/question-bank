@@ -28,6 +28,9 @@ vi.mock('electron', () => ({
   shell: {},
   ipcMain: {},
 }));
+// 앱 시작 모듈은 여러 서비스를 불러와 무거우므로, 전체 테스트가 몰릴 때를 대비해 시간을 넉넉히 둔다.
+vi.setConfig({ testTimeout: 30_000 });
+vi.mock('electron-updater', () => ({ autoUpdater: {} }));
 describe('단일 실행 잠금 실패와 캡처 시작 옵션', () => {
   let directory: string;
   beforeEach(() => {

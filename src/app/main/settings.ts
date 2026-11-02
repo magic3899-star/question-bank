@@ -2,11 +2,11 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import type { Settings } from '../shared/index';
 
 export const defaultSettings: Settings = {
-  theme: 'system',
+  theme: 'light',
   pasteJoin: 'space',
   subjects: [
-    { id: 'law', name: '법규' },
-    { id: 'anatomy', name: '해부' },
+    { id: 'law', name: '의료관계법규' },
+    { id: 'anatomy', name: '구강해부학' },
   ],
   defaultSaveDir: '',
 };

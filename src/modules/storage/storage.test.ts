@@ -477,3 +477,46 @@ describe('마이그레이션', () => {
     expect(() => openStorage(join(filePath(), 'missing', 'bank.sqlite'))).toThrow('DB 경로와 파일 접근 권한');
   });
 });
+
+describe('이력·확정본 삭제와 백업', () => {
+  it('이력을 지우면 최근 출제 문제에서도 빠지고 확정본도 지울 수 있다', async () => {
+    const storage = openStorage(':memory:');
+    try {
+      await storage.history.record({
+        examId: 'e1',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        ruleSetId: 'r',
+        seed: 's',
+        title: '가짜',
+        questionIds: ['q1', 'q2'],
+      });
+      expect([...(await storage.history.recentQuestionIds(5))]).toEqual(['q1', 'q2']);
+      await storage.history.delete(['e1']);
+      expect(await storage.history.list()).toEqual([]);
+      expect([...(await storage.history.recentQuestionIds(5))]).toEqual([]);
+      await storage.snapshots.delete(['없는-시험']);
+    } finally {
+      storage.close();
+    }
+  });
+
+  it('실행 중인 DB 를 파일로 백업하고 백업본을 열 수 있다', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'qb-backup-'));
+    const source = join(dir, 'bank.sqlite');
+    const target = join(dir, 'backup.sqlite');
+    const storage = openStorage(source);
+    try {
+      await storage.questions.upsertMany([makeQuestion({ id: 'b1' })]);
+      await storage.backupTo(target);
+    } finally {
+      storage.close();
+    }
+    const copy = openStorage(target);
+    try {
+      expect(await copy.questions.count()).toBe(1);
+    } finally {
+      copy.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

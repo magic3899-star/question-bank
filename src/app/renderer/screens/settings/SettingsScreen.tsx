@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { FolderOpen, Settings as SettingsIcon } from 'lucide-react';
+import { FolderOpen } from 'lucide-react';
 import type { AppInfo, Settings, Theme } from '../../../shared/index';
-import { Button, Card, EmptyState, Tabs } from '../../components/index';
+import { Button, Card, Tabs } from '../../components/index';
+import { BackupCard } from './BackupCard';
+import { UpdateCard } from './UpdateCard';
 import { useReadySignal } from '../../hooks/index';
 import { unwrap } from '../../lib/index';
 import styles from './SettingsScreen.module.css';
@@ -28,9 +30,9 @@ export function SettingsScreen({
             label="화면 테마"
             value={settings.theme}
             items={[
-              { id: 'system', label: '시스템' },
-              { id: 'light', label: '라이트' },
-              { id: 'dark', label: '다크' },
+              { id: 'light', label: '밝게' },
+              { id: 'dark', label: '어둡게' },
+              { id: 'system', label: 'Windows 설정 따르기' },
             ]}
             onChange={(theme) => {
               if (busy) return;
@@ -64,14 +66,8 @@ export function SettingsScreen({
           데이터 폴더 열기
         </Button>
       </Card>
-      <Card title="추가 설정">
-        <EmptyState
-          compact
-          icon={<SettingsIcon />}
-          title="다음 단계에서 제공됩니다"
-          description="백업·복원, 업데이트와 출력 환경 설정을 준비하고 있습니다."
-        />
-      </Card>
+      <BackupCard notify={notify} />
+      <UpdateCard info={info} notify={notify} />
     </div>
   );
 }

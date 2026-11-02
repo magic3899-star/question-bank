@@ -1,0 +1,24 @@
+.summary {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.summary > li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+.summary details {
+  flex: 1;
+}
+.summary summary {
+  cursor: pointer;
+}
+.summary details ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}

@@ -11,3 +11,4 @@ export function createExporters(deps?: { renderPdf?: PdfRenderer; fontFaceCss?: 
     ...(deps?.renderPdf ? [createPdfExporter(deps.renderPdf, { fontFaceCss: deps.fontFaceCss })] : []),
   ];
 }
+export type { PdfRenderer } from './pdf/index';

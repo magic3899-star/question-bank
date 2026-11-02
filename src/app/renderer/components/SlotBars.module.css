@@ -1,0 +1,40 @@
+.bars {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-1);
+}
+.head span {
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}
+.track {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.ok,
+.short {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-sm);
+}
+.ok {
+  background: var(--accent);
+}
+.short {
+  background: var(--warn);
+}
+.note {
+  margin: var(--space-1) 0 0;
+  color: var(--warn);
+  font-size: var(--font-xs);
+}

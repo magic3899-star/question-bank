@@ -1,0 +1,46 @@
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 980px;
+  overflow: auto;
+}
+.heading h2 {
+  margin: 0;
+  font-size: var(--font-xl);
+}
+.heading p {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+}
+.actions,
+.actionsLeft {
+  display: flex;
+  gap: var(--space-2);
+}
+.actions {
+  justify-content: flex-end;
+}
+.actions svg,
+.actionsLeft svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+.warn {
+  margin: 0;
+  color: var(--warn);
+}
+.diagnostics,
+.notices {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.diagnostics li,
+.notices li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}

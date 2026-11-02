@@ -16,7 +16,7 @@ async function main(): Promise<void> {
     const { questions, assets } = makeAppBank();
     for (const asset of Object.values(assets)) await storage.assets.put(asset);
     await storage.questions.upsertMany(questions);
-    createSettingsService(paths.settingsPath, () => new Date().toISOString()).update({ theme: 'system' });
+    createSettingsService(paths.settingsPath, () => new Date().toISOString()).update({ theme: 'light' });
     console.log('가짜 문제 300개·과목 2개를 저장했습니다.');
   } finally {
     storage.close();

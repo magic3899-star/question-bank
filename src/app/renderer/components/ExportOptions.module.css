@@ -1,0 +1,29 @@
+.exportGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.exportGrid fieldset {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-4);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.exportGrid legend {
+  padding: 0 var(--space-1);
+  font-weight: var(--weight-medium);
+}
+.inline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.inline input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}

@@ -1,0 +1,53 @@
+.paper {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  background: var(--surface-2);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.frame {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  background: var(--surface-2);
+}
+.zoom {
+  position: absolute;
+  right: var(--space-3);
+  top: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--surface);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+  z-index: 1;
+}
+.zoom button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+}
+.zoom button:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+.zoom svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+.zoom span {
+  min-width: 40px;
+  text-align: center;
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}

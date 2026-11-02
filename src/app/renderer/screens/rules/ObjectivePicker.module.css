@@ -1,0 +1,31 @@
+.meta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}
+.pickList,
+.pickList ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pickList {
+  max-height: 360px;
+  overflow: auto;
+}
+.pickRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+.pickRow small {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}

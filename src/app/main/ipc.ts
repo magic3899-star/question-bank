@@ -6,6 +6,12 @@ import type { createEditorService } from './services/editor';
 import type { createBankService } from './services/bank';
 import type { createImportService } from './services/import';
 import type { createSettingsService } from './settings';
+import type { createRulesService } from './services/rules';
+import type { createGenerateService } from './services/generate';
+import type { createExportService } from './services/export';
+import type { createBackupService } from './services/backup';
+import type { createUpdater } from './updater';
+import { events } from '../shared/index';
 
 export async function toResult<T>(action: () => T | Promise<T>): Promise<Result<T>> {
   try {
@@ -27,7 +33,22 @@ export function registerIpc(deps: {
   setDirty?: (dirty: boolean) => void;
   importer?: ReturnType<typeof createImportService>;
   openDataDir: () => Promise<void>;
+  rules?: ReturnType<typeof createRulesService>;
+  generate?: ReturnType<typeof createGenerateService>;
+  exporter?: ReturnType<typeof createExportService>;
+  backup?: ReturnType<typeof createBackupService>;
+  updater?: ReturnType<typeof createUpdater>;
+  openPath?: (path: string) => Promise<void>;
+  restoreBackup?: (path: string) => Promise<void>;
+  openBackupFolder?: () => Promise<void>;
 }): void {
+  const need = <T>(service: T | undefined, label: string): T => {
+    if (!service)
+      throw new Error(
+        deps.info().startupError ?? `${label}을(를) 준비할 수 없습니다. 데이터 폴더와 백업을 확인하세요.`,
+      );
+    return service;
+  };
   const bank = () => {
     if (!deps.bank)
       throw new Error(
@@ -71,6 +92,33 @@ export function registerIpc(deps: {
     [channels.importAnalyze]: (value) => importer().analyze(value),
     [channels.importCommit]: (value) => importer().commit(value),
     [channels.importDiscard]: (value) => importer().discard(value),
+    [channels.openPath]: (v) => deps.openPath!(need(deps.exporter, '저장 기능').isAllowedPath(v)),
+    [channels.rulesList]: () => need(deps.rules, '출제 규칙').list(),
+    [channels.rulesGet]: (v) => need(deps.rules, '출제 규칙').get(v),
+    [channels.rulesSave]: (v) => need(deps.rules, '출제 규칙').save(v),
+    [channels.rulesDuplicate]: (v) => need(deps.rules, '출제 규칙').duplicate(v),
+    [channels.rulesDelete]: (v) => need(deps.rules, '출제 규칙').delete(v),
+    [channels.rulesReset]: (v) => need(deps.rules, '출제 규칙').resetPreset(v),
+    [channels.rulesCheck]: (v) => need(deps.rules, '출제 규칙').check(v),
+    [channels.examGenerate]: (v) => need(deps.generate, '시험 만들기').generate(v),
+    [channels.examGet]: (v) => need(deps.generate, '시험 만들기').get(v),
+    [channels.examReplace]: (v) => need(deps.generate, '시험 만들기').replace(v),
+    [channels.examRegenerate]: (v) => need(deps.generate, '시험 만들기').regenerate(v),
+    [channels.examDiscard]: (v) => need(deps.generate, '시험 만들기').discard(v),
+    [channels.examExport]: (v) =>
+      need(deps.exporter, '저장 기능').export(v, (progress) => {
+        if (!deps.contents.isDestroyed()) deps.contents.send(events.exportProgress, progress);
+      }),
+    [channels.historyList]: (v) => need(deps.exporter, '출제 이력').historyList(v),
+    [channels.historyGet]: (v) => need(deps.exporter, '출제 이력').historyGet(v),
+    [channels.historyDelete]: (v) => need(deps.exporter, '출제 이력').historyDelete(v),
+    [channels.backupList]: () => need(deps.backup, '백업').list(),
+    [channels.backupCreate]: () => need(deps.backup, '백업').create(),
+    [channels.backupRestore]: (v) => deps.restoreBackup!(need(deps.backup, '백업').resolve(v)),
+    [channels.backupOpenFolder]: () => deps.openBackupFolder!(),
+    [channels.updateStatus]: () => need(deps.updater, '업데이트').status(),
+    [channels.updateCheck]: () => need(deps.updater, '업데이트').check(),
+    [channels.updateInstall]: () => need(deps.updater, '업데이트').install(),
   };
   for (const channel of Object.values(channels)) {
     const action = handlers[channel]!;

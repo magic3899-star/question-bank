@@ -17,8 +17,8 @@ describe('화면용 문제은행 서비스', () => {
     expect(await service().stats()).toEqual({
       total: 0,
       bySubject: [
-        { subject: 'law', name: '법규', count: 0, withoutObjective: 0 },
-        { subject: 'anatomy', name: '해부', count: 0, withoutObjective: 0 },
+        { subject: 'law', name: '의료관계법규', count: 0, withoutObjective: 0 },
+        { subject: 'anatomy', name: '구강해부학', count: 0, withoutObjective: 0 },
       ],
       warnings: { withoutObjective: 0 },
     });

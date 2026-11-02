@@ -8,6 +8,7 @@ import { routes } from './routes';
 import { parseHash } from './router';
 import { Sidebar } from './Sidebar';
 import { PageHeader } from './PageHeader';
+import { UpdateBanner } from './UpdateBanner';
 import { useTheme } from './theme';
 import { useShortcuts } from './shortcuts';
 import styles from './App.module.css';
@@ -72,6 +73,7 @@ export function App() {
         about={() => setAbout(true)}
       />
       <div className={styles.workspace}>
+        <UpdateBanner />
         <PageHeader page={page} />
         <main key={`${hash.route}?${hash.query}`}>
           {error ? (

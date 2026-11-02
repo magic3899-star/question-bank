@@ -18,7 +18,7 @@ describe('앱 설정 보존', () => {
     service.update({ theme: 'dark', window: { width: 1100, height: 700, x: -100, y: 0 } });
     const value = service.get();
     value.subjects[0].name = '변조';
-    expect(createSettingsService(file, now).get().subjects[0].name).toBe('법규');
+    expect(createSettingsService(file, now).get().subjects[0].name).toBe('의료관계법규');
     expect(createSettingsService(file, now).get().theme).toBe('dark');
   });
   it('이전 설정은 공백 모드를 기본으로 쓰고 줄 잇기 선택을 재실행 후에도 보존한다', () => {
@@ -57,6 +57,6 @@ describe('앱 설정 보존', () => {
   it('쓰기 실패는 기존 메모리 설정을 변경하지 않는다', () => {
     const service = createSettingsService(join(directory, 'missing', 'settings.json'), now);
     expect(() => service.update({ theme: 'dark' })).toThrow('쓰기 권한');
-    expect(service.get().theme).toBe('system');
+    expect(service.get().theme).toBe('light');
   });
 });

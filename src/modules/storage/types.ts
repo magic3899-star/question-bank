@@ -25,6 +25,8 @@ export interface Storage {
   ruleSets: RuleSetRepository;
   history: HistoryRepository;
   snapshots: SnapshotRepository;
+  /** 실행 중에도 일관된 DB 복사본을 만든다(better-sqlite3 온라인 백업). */
+  backupTo(path: string): Promise<void>;
   close(): void;
   schemaVersion(): number;
 }

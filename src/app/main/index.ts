@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, screen, shell } from 'electron';
+import { app, BrowserWindow, dialog, nativeTheme, screen, shell } from 'electron';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { openStorage } from '../../modules/storage/index';
@@ -12,6 +12,15 @@ import { createEditorService } from './services/editor';
 import { createImportService } from './services/import';
 import { registerIpc } from './ipc';
 import { captureDeadline, captureRoutes, writeCaptureFailure } from './capture';
+import { autoUpdater } from 'electron-updater';
+import { events } from '../shared/index';
+import { createRulesService } from './services/rules';
+import { createGenerateService } from './services/generate';
+import { createExportService } from './services/export';
+import { createBackupService } from './services/backup';
+import { createPdfRenderer } from './pdf-renderer';
+import type { PrintWindow } from './pdf-renderer';
+import { createUpdater } from './updater';
 
 const paths = getPaths(app.getPath('appData'), process.env.QB_DATA_DIR);
 app.setPath('userData', paths.dataDir);
@@ -58,6 +67,20 @@ if (!app.requestSingleInstanceLock()) {
         const message = cause instanceof Error ? cause.message : String(cause);
         startupError = `데이터를 열지 못했습니다. ${message} 데이터 폴더의 접근 권한을 확인하고, 손상된 DB는 보관한 뒤 backups 폴더의 백업에서 복원하세요.`;
       }
+      // 창 제목 표시줄(Windows 가 그림)도 앱 테마를 따르게 한다. Windows 가 다크 모드여도 기본은 밝게.
+      const applyNativeTheme = (theme: Settings['theme']) => {
+        nativeTheme.themeSource = theme;
+      };
+      applyNativeTheme(settings.get().theme);
+      const baseSettings = settings;
+      settings = {
+        ...baseSettings,
+        update: (partial: unknown) => {
+          const next = baseSettings.update(partial);
+          if (partial && typeof partial === 'object' && 'theme' in partial) applyNativeTheme(next.theme);
+          return next;
+        },
+      };
       const saved = settings.get().window;
       const onScreen =
         saved &&
@@ -80,6 +103,7 @@ if (!app.requestSingleInstanceLock()) {
         minHeight: 700,
         title: '문제은행',
         autoHideMenuBar: true,
+        backgroundColor: settings.get().theme === 'dark' ? '#14161a' : '#f4f7fd',
         webPreferences: {
           preload: join(__dirname, '../preload/index.js'),
           contextIsolation: true,
@@ -121,7 +145,92 @@ if (!app.requestSingleInstanceLock()) {
       let closing = false;
       let closePrompt = false;
       const editor = storage ? createEditorService(storage, { now }) : undefined;
+      const db = storage;
+      const rules = db ? createRulesService(db, settings.get) : undefined;
+      const generate =
+        db && rules ? createGenerateService(db, { now, getRules: (id) => rules.get(id) }) : undefined;
+      const createPrintWindow = (): PrintWindow => {
+        const print = new BrowserWindow({
+          show: false,
+          width: 900,
+          height: 1200,
+          webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false },
+        });
+        print.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+        print.webContents.on('will-navigate', (event) => event.preventDefault());
+        return {
+          loadFile: (file) => print.loadFile(file),
+          waitForFonts: async () => {
+            await print.webContents.executeJavaScript('document.fonts.ready.then(() => true)');
+          },
+          printToPDF: async (options) =>
+            new Uint8Array(await print.webContents.printToPDF(options as Electron.PrintToPDFOptions)),
+          close: () => {
+            if (!print.isDestroyed()) print.destroy();
+          },
+        };
+      };
+      const renderPdf = createPdfRenderer({
+        tempDir: join(app.getPath('temp'), 'QuestionBank'),
+        createWindow: createPrintWindow,
+      });
+      const subjectName = (subject: string) =>
+        settings.get().subjects.find((item) => item.id === subject)?.name ?? subject;
+      const exporter =
+        db && generate
+          ? createExportService(db, {
+              renderPdf,
+              pickFolder: async (defaultPath) => {
+                const result = await dialog.showOpenDialog(win, {
+                  title: '시험지를 저장할 폴더 선택',
+                  defaultPath,
+                  properties: ['openDirectory', 'createDirectory'],
+                });
+                return result.canceled ? undefined : result.filePaths[0];
+              },
+              defaultFolder: () => settings.get().defaultSaveDir || app.getPath('documents'),
+              settings,
+              session: (id) => generate.session(id),
+              subjectName,
+              ruleName: async (id) => (await db.ruleSets.get(id))?.name ?? id,
+            })
+          : undefined;
+      const backup = db
+        ? createBackupService(db, { backupsDir: paths.backupsDir, dbPath: paths.dbPath, now })
+        : undefined;
+      const updater = createUpdater({
+        enabled: app.isPackaged && !process.env.QB_CAPTURE_DIR,
+        updater: app.isPackaged ? autoUpdater : undefined,
+        notify: (status) => {
+          if (!win.isDestroyed()) win.webContents.send(events.updateStatus, status);
+        },
+      });
+      if (!process.env.QB_CAPTURE_DIR) {
+        void rules?.ensurePresets().catch(() => undefined);
+        void backup?.autoBackupIfDue().catch(() => undefined);
+      }
       registerIpc({
+        rules,
+        generate,
+        exporter,
+        backup,
+        updater,
+        openPath: async (path) => {
+          const message = await shell.openPath(path);
+          if (message)
+            throw new Error('파일을 열지 못했습니다. 연결된 프로그램이 설치되어 있는지 확인하세요.');
+        },
+        openBackupFolder: async () => {
+          const message = await shell.openPath(paths.backupsDir);
+          if (message) throw new Error('백업 폴더를 열지 못했습니다. 폴더 권한을 확인하세요.');
+        },
+        restoreBackup: async (backupPath) => {
+          if (!backup) throw new Error('백업 기능을 준비할 수 없습니다.');
+          storage?.close();
+          backup.replaceDatabase(backupPath);
+          app.relaunch();
+          app.exit(0);
+        },
         contents: win.webContents,
         info: info.get,
         settings,
@@ -172,6 +281,7 @@ if (!app.requestSingleInstanceLock()) {
         ? win.loadURL(process.env.ELECTRON_RENDERER_URL)
         : win.loadFile(join(__dirname, '../renderer/index.html'));
       await (process.env.QB_CAPTURE_DIR ? captureDeadline(load, '화면 불러오기') : load);
+      if (!process.env.QB_CAPTURE_DIR) setTimeout(() => void updater.check(), 5000);
       if (process.env.QB_CAPTURE_DIR) {
         try {
           const captureFiles = process.env.QB_CAPTURE_IMPORT_FILES;

@@ -12,6 +12,7 @@ import {
 import { Button, Card, EmptyState, ErrorState, Spinner } from '../../components/index';
 import { useApi, useReadySignal } from '../../hooks/index';
 import { navigate } from '../../lib/index';
+import { RecentExams } from './RecentExams';
 import styles from './HomeScreen.module.css';
 export function HomeScreen() {
   const { value: stats, error, retry } = useApi(() => window.qb.bank.stats(), []);
@@ -92,14 +93,7 @@ export function HomeScreen() {
             </Button>
           )}
         </Card>
-        <Card title="최근 시험">
-          <EmptyState
-            compact
-            icon={<History />}
-            title="아직 만든 시험이 없습니다"
-            description="시험 만들기는 다음 단계에서 제공됩니다."
-          />
-        </Card>
+        <RecentExams />
       </div>
       <div className={styles['help-strip']}>
         <Library />

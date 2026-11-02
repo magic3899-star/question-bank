@@ -1,0 +1,229 @@
+.page {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: var(--space-4);
+  height: 100%;
+  min-height: 0;
+  padding: var(--space-6) var(--space-8);
+}
+.list {
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  overflow: auto;
+}
+.list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.list button {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-bottom: var(--line) solid var(--border);
+  background: transparent;
+  text-align: left;
+}
+.list button:hover {
+  background: var(--surface-2);
+}
+.list button.selected {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--weight-bold);
+}
+.name svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  color: var(--accent);
+}
+.meta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+}
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.toolbar h2 {
+  margin: 0 auto 0 0;
+  font-size: var(--font-xl);
+}
+.toolbar svg,
+.form svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--space-4);
+  flex: 1;
+  min-height: 0;
+}
+.form,
+.check {
+  overflow: auto;
+  padding: var(--space-4);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.form h3,
+.check h3 {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-md);
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.slots {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.slot {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+.slotRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+.slotButtons {
+  display: flex;
+  gap: var(--space-1);
+}
+.slotButtons button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: var(--line) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.prefixRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: end;
+}
+.conditions {
+  display: grid;
+  gap: var(--space-3);
+}
+.check {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+.conditions .check {
+  padding: 0;
+  border: 0;
+  overflow: visible;
+}
+.check input {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+.check span {
+  display: grid;
+}
+.check small {
+  color: var(--text-muted);
+}
+aside.check {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+.diagnostics,
+.description {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-xs);
+}
+.description {
+  color: var(--text-muted);
+}
+.diagnostics li {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+.unconfirmed {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: var(--line) solid var(--warn);
+  border-radius: var(--radius-card);
+  background: var(--surface-2);
+}
+.unconfirmed p {
+  margin: 0 0 var(--space-2);
+}
+.pickList,
+.pickList ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pickList {
+  max-height: 360px;
+  overflow: auto;
+}
+.pickRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+}
+.pickRow small {
+  margin-left: auto;
+  color: var(--text-muted);
+}
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}

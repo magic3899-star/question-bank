@@ -13,19 +13,20 @@
 | 5A2 | 화면 코드 구조 개편(화면·컴포넌트별 파일, CSS Modules, 화면 간 import 금지), 다크 대비 | 완료·검수 (실제 문제 DB 로 32개 화면 캡처) |
 | 5B | 해석 규칙 공용화(layout-parser), 붙여넣기 해석, 가져오기 화면 | 완료·검수 (실제 문서 결과 동일, 검수 표 화면 확인) |
 | 5C·5C2 | 문제 추가·편집 화면, PDF 붙여넣기 자동 분리, 해설 따로 붙이기, 디자인 시스템 정리 | 완료·검수 (PDF식 글로 확인) |
-| 5D1 | 출제 규칙 편집기 + 시험 만들기 마법사 + 문제 바꾸기·회차 다시 뽑기 | **Codex 사용 한도로 중단(14시 전)** → 지시서 `docs/prompts/stage5d1.md` 로 다시 실행. 중간 작업은 `git stash` 에 보관(참고용) |
-| 5D2 | 파일 저장(실제 printToPDF)·출제 이력·홈 최근 시험 | 지시서 준비됨 `docs/prompts/stage5d2.md` (실행 전 계약에 `history.delete`·`snapshots.delete` 추가 필요) |
-| 5E | 설정(백업·복원)·자동 업데이트·설치 파일·깨끗한 PC 시험 | 예정 |
+| 5D·5E (Claude 직접 구현, Codex 한도) | 시험 만들기 마법사·문제 바꾸기·회차 다시 뽑기·출제 규칙 편집기·파일 저장(실제 printToPDF)·출제 이력·백업/복원·자동 업데이트·밝은 디자인·제목 표시줄 밝게 | 완료 (테스트 730, 실제 문제로 생성→바꾸기→PDF/Word/Excel 저장 확인) |
+| 배포 | 아이콘·버전 1.0.0·설치 파일·이 PC 설치·직원 배포 안내 | **다음 할 일** |
 
 ## 다음 세션 순서
 
-### 1. 5D1 다시 실행 → 검수
-- Codex 한도가 풀리면 `codex exec -s workspace-write -C <프로젝트> - < docs/prompts/stage5d1.md` (백그라운드 작업 자체로 실행).
-- 검수: 전체 테스트·typecheck·lint:deps·format:check·build, 그리고 실제 문제 DB 로 `QB_CAPTURE_GENERATE_RULE`(프리셋 법규) 캡처 → 결과 미리보기·규칙 편집기 화면 확인. 문제 바꾸기 후에도 4개 회차 간 겹침·같은 지문·중단원 규칙이 지켜지는지 `.tmp-realcheck` 스크립트로 확인.
+### 1. 남은 화면 눈으로 확인 (짧게)
+- 실제 문제 DB(`.tmp-realcheck/seed-real.ts` 로 만든 폴더 복사본)로 앱을 원격 디버깅 포트와 함께 띄워(`cdp-eval.mjs`·`cdp-shot.mjs`) 출제 규칙·출제 이력·설정(백업·업데이트)·홈 최근 시험 화면 캡처. 제목 표시줄이 밝게 바뀌었는지 확인.
+- 주의: 이전 Electron 이 남아 있으면 단일 실행 잠금 때문에 새 창이 바로 꺼진다(포트 연결 거부). 모두 꺼질 때까지 기다린 뒤 실행.
 
-### 2. 5D2 → 5E
-- 5D2 실행 전 계약(`src/contracts/index.ts`)에 `HistoryRepository.delete(examIds)`, `SnapshotRepository.delete(examIds)` 추가.
-- 5D2 검수의 핵심: 캡처 모드 `QB_CAPTURE_EXPORT_DIR` 로 **실제 printToPDF 결과 PDF** 를 만들고 `office2png.ps1` 방식(Windows.Data.Pdf)으로 그림으로 확인.
+### 2. 배포
+- 아이콘(`build/icon.ico`, 256×256) 만들기, 버전 1.0.0, `npm run dist` → `release/QuestionBank-Setup-1.0.0.exe`.
+- 이 PC 에 설치: 설치 파일 `/S`(조용히, 사용자별 설치). 바탕화면·시작 메뉴 바로 가기 "문제은행".
+- 직원 배포 안내: 코드 서명이 없어 첫 실행 때 SmartScreen 경고 → "추가 정보 → 실행". 데이터는 각 PC 의 `%APPDATA%\QuestionBank`.
+- 자동 업데이트: GitHub Releases 에 `latest.yml`·설치 파일을 올려야 한다. 저장소가 비공개면 직원 PC 에서 확인이 실패(앱 사용에는 지장 없음) → 배포 전에 공개 전환 또는 설치 파일만 담은 공개 저장소.
 
 ### 3. 한글(HWPX) 저장 스파이크 (5단계 이후)
 - 후보: kordoc(`markdownToHwpx`), airmang/hwpx-plugins. 이미지·밑줄·표 보존과 Windows 한글에서 열림 확인. 통과하면 `exporters/hwpx` 플러그인.

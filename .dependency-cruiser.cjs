@@ -12,7 +12,7 @@ const modules = [
   ['src/modules/rules', ['contracts', 'objective-code']],
   ['src/modules/selector', ['contracts', 'content-model', 'objective-code', 'rng']],
   ['src/modules/exam-snapshot', ['contracts', 'content-model']],
-  ['src/modules/generation', ['contracts', 'exam-snapshot', 'content-model', 'rng']],
+  ['src/modules/generation', ['contracts', 'exam-snapshot', 'content-model', 'rng', 'objective-code']],
   ['src/modules/render-html', ['contracts', 'content-model']],
   ['src/modules/history', ['contracts']],
   ['src/modules/backup', ['contracts']],

@@ -1,0 +1,44 @@
+.path-caption {
+  color: var(--text-muted);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+.actions svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+.backups {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.backups li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: var(--line) solid var(--border);
+}
+.backups span {
+  display: grid;
+}
+.backups small {
+  color: var(--text-muted);
+}
+.backups svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}

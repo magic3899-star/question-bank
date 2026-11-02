@@ -298,6 +298,17 @@ export function openStorage(dbPath: string, opts?: StorageOptions): Storage {
             .all(...(subject === undefined ? [lastNExams] : [lastNExams, subject]));
           return new Set(rows.map((row) => row.question_id));
         }),
+      delete: (examIds) =>
+        perform('출제 이력 삭제', () =>
+          db.transaction(() => {
+            const questions = db.prepare('DELETE FROM history_questions WHERE exam_id = ?');
+            const entries = db.prepare('DELETE FROM history_entries WHERE exam_id = ?');
+            for (const id of examIds) {
+              questions.run(id);
+              entries.run(id);
+            }
+          })(),
+        ),
     },
     snapshots: {
       save: (snapshot) =>
@@ -328,6 +339,23 @@ export function openStorage(dbPath: string, opts?: StorageOptions): Storage {
             )
             .all(limited(limit)),
         ),
+      delete: (examIds) =>
+        perform('확정본 삭제', () =>
+          db.transaction(() => {
+            const statement = db.prepare('DELETE FROM snapshots WHERE exam_id = ?');
+            for (const id of examIds) statement.run(id);
+          })(),
+        ),
+    },
+    backupTo: async (path) => {
+      try {
+        // 온라인 백업 API 는 WAL 내용까지 일관되게 복사하므로 앱 실행 중에도 안전하다.
+        await db.backup(path);
+      } catch (cause) {
+        throw new Error('DB 백업 파일을 만들지 못했습니다. 백업 폴더의 공간과 쓰기 권한을 확인하세요.', {
+          cause,
+        });
+      }
     },
     close: () => {
       if (db.open) db.close();

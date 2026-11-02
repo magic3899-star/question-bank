@@ -417,12 +417,15 @@ export interface HistoryRepository {
   record(entry: HistoryEntry): Promise<void>;
   list(limit?: number): Promise<HistoryEntry[]>;
   recentQuestionIds(lastNExams: number, subject?: string): Promise<Set<string>>;
+  /** 출제 이력을 지운다(최근 N회 제외 규칙에서도 빠진다). */
+  delete(examIds: string[]): Promise<void>;
 }
 
 export interface SnapshotRepository {
   save(snapshot: ExamSnapshot): Promise<void>;
   get(examId: string): Promise<ExamSnapshot | undefined>;
   list(limit?: number): Promise<Pick<ExamSnapshot, 'examId' | 'title' | 'createdAt' | 'subject' | 'seed'>[]>;
+  delete(examIds: string[]): Promise<void>;
 }
 
 /* ────────────────────────────────────────────────────────────
