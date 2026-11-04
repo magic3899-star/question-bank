@@ -24,4 +24,5 @@ export { Select } from './Select';
 export { ExamPaper } from './ExamPaper';
 export { SlotBars } from './SlotBars';
 export { ExportOptions } from './ExportOptions';
+export { useExamHeader } from './useExamHeader';
 export { DiagnosticSummary } from './DiagnosticSummary';

@@ -1,12 +1,16 @@
 import type {
   AssetData,
   Block,
+  ExamHeader,
   ExamSnapshot,
   ExportOptions,
   ExportPart,
   InlineRun,
   Question,
 } from '../../contracts/index';
+import { describeExamHeader } from './exam-header';
+
+export { describeExamHeader } from './exam-header';
 
 interface RenderContext {
   assets: Record<string, AssetData>;
@@ -93,6 +97,7 @@ h3 { font-size: 10pt; margin: 0 0 8px; }
 p { margin: 0 0 4px; white-space: pre-wrap; }
 img { max-width: 100%; height: auto; object-fit: contain; }
 .qb-student { text-align: right; margin-bottom: 24px; }
+.qb-exam-info { text-align: center; font-size: 9pt; margin-bottom: 16px; break-inside: avoid; break-after: avoid; }
 .qb-questions { column-count: 2; column-gap: 24px; column-rule: 1px solid var(--border); }
 .qb-item { break-inside: avoid; margin-top: var(--item-spacing); margin-bottom: 16px; }
 .qb-stem-first { padding-left: var(--number-width); text-indent: calc(0px - var(--number-width)); }
@@ -146,11 +151,15 @@ function fontStyles(css: string | undefined): string {
   return faces.length ? `<style data-qb-fonts>${faces.join('\n')}</style>` : '';
 }
 
-function renderPart(snapshot: ExamSnapshot, part: ExportPart): string {
+function renderPart(snapshot: ExamSnapshot, part: ExportPart, header?: ExamHeader): string {
   const ctx = { assets: snapshot.assets };
   const title = `<h1>${escapeHtml(snapshot.title)}</h1><h2>${partNames[part]}</h2>`;
   if (part === 'questions') {
-    return `${title}<div class="qb-student">성명: ____________________　점수: __________</div><div class="qb-questions">${
+    const description = header ? describeExamHeader(snapshot, header) : undefined;
+    const heading = description
+      ? `<div class="qb-exam-info">${escapeHtml(description.info)}</div>${description.candidate ? `<div class="qb-student">${escapeHtml(description.candidate)}</div>` : ''}`
+      : '<div class="qb-student">성명: ____________________　점수: __________</div>';
+    return `${title}${heading}<div class="qb-questions">${
       snapshot.items
         .map((item) => {
           const number = `<span class="qb-number">${escapeHtml(item.number)}.</span>`;
@@ -198,7 +207,10 @@ export function renderExamHtml(
       const part = options.combineParts ? 'combined' : group[0];
       const title = `${snapshot.title} ${part === 'combined' ? '통합본' : partNames[part]}`;
       const sections = group
-        .map((entry) => `<section class="qb-part qb-${entry}-part">${renderPart(snapshot, entry)}</section>`)
+        .map(
+          (entry) =>
+            `<section class="qb-part qb-${entry}-part">${renderPart(snapshot, entry, options.header)}</section>`,
+        )
         .join('');
       return {
         part,

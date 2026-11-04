@@ -1,4 +1,4 @@
-import type { Diagnostic, ExamSnapshot, ExportPart, RuleSet } from '../../contracts/index';
+import type { Diagnostic, ExamHeader, ExamSnapshot, ExportPart, RuleSet } from '../../contracts/index';
 
 export interface RuleSummary {
   id: string;
@@ -68,6 +68,7 @@ export interface ExportRequest {
   formats: ExportFormat[];
   parts: ExportPart[];
   combineParts: boolean;
+  header?: ExamHeader;
   folder?: string;
 }
 

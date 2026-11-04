@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, FileDown, FolderOpen, History } from 'lucide-react';
 import type { ExportPart } from '../../../../contracts/index';
 import type { ExportFormat } from '../../../shared/index';
-import { Button, ExportOptions } from '../../components/index';
+import { Button, ExportOptions, useExamHeader } from '../../components/index';
 import { navigate, unwrap } from '../../lib/index';
 import type { useGenerate } from './useGenerate';
 
@@ -16,6 +16,7 @@ export function StepSave({
   notify: (message: string) => void;
 }) {
   const session = model.session!;
+  const examHeader = useExamHeader();
   const [formats, setFormats] = useState<ExportFormat[]>(['pdf', 'docx']);
   const [parts, setParts] = useState<ExportPart[]>(['questions', 'answers', 'explanations']);
   const [combine, setCombine] = useState(false);
@@ -32,7 +33,7 @@ export function StepSave({
       ? '저장할 문서를 하나 이상 고르세요.'
       : !exams.length
         ? '저장할 회차를 하나 이상 고르세요.'
-        : undefined;
+        : examHeader.reason;
   return (
     <div className={styles.step}>
       <div className={styles.heading}>
@@ -49,6 +50,7 @@ export function StepSave({
         setCombine={setCombine}
         exams={exams}
         setExams={setExams}
+        examHeader={examHeader}
       />
       {blanks > 0 && <p className={styles.warn}>선택한 회차에 비워 둔 번호가 {blanks}개 있습니다.</p>}
       {model.busy && model.progress && (
@@ -96,6 +98,7 @@ export function StepSave({
               parts,
               combineParts: combine,
               examIndexes: exams,
+              ...examHeader.request,
             })
           }
         >

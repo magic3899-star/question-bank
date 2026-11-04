@@ -1,6 +1,8 @@
 import type { ExamSnapshot, ExportPart } from '../../../contracts/index';
 import type { ExportFormat } from '../../shared/index';
 import styles from './ExportOptions.module.css';
+import { Input } from './Input';
+import type { useExamHeader } from './useExamHeader';
 
 const formatItems: { id: ExportFormat; label: string }[] = [
   { id: 'pdf', label: 'PDF' },
@@ -28,6 +30,7 @@ export function ExportOptions(props: {
   setCombine: (value: boolean) => void;
   exams: number[];
   setExams: (value: number[]) => void;
+  examHeader: ReturnType<typeof useExamHeader>;
 }) {
   return (
     <div className={styles.exportGrid}>
@@ -73,6 +76,60 @@ export function ExportOptions(props: {
             {snapshot.title}
           </label>
         ))}
+      </fieldset>
+      <fieldset className={styles.header}>
+        <legend>시험지 머리</legend>
+        <label className={styles.inline}>
+          <input
+            type="checkbox"
+            checked={props.examHeader.form.enabled}
+            onChange={(event) => props.examHeader.setField('enabled', event.target.checked)}
+          />
+          시험지 머리 정보 넣기
+        </label>
+        {props.examHeader.form.enabled && (
+          <>
+            <p className={styles.hint}>문제지에만 표시합니다. 교시·시간·배점은 비워 둘 수 있습니다.</p>
+            <div className={styles.headerInputs}>
+              <Input
+                label="교시"
+                placeholder="예: 1교시"
+                maxLength={30}
+                value={props.examHeader.form.period}
+                onChange={(event) => props.examHeader.setField('period', event.target.value)}
+                error={props.examHeader.errors.period}
+              />
+              <Input
+                label="시험 시간(분)"
+                type="number"
+                min={1}
+                max={600}
+                step={1}
+                value={props.examHeader.form.durationMinutes}
+                onChange={(event) => props.examHeader.setField('durationMinutes', event.target.value)}
+                error={props.examHeader.errors.durationMinutes}
+              />
+              <Input
+                label="문항당 배점"
+                type="number"
+                min={0}
+                max={100}
+                step="any"
+                value={props.examHeader.form.pointsPerQuestion}
+                onChange={(event) => props.examHeader.setField('pointsPerQuestion', event.target.value)}
+                error={props.examHeader.errors.pointsPerQuestion}
+              />
+            </div>
+            <label className={styles.inline}>
+              <input
+                type="checkbox"
+                checked={props.examHeader.form.candidateFields}
+                onChange={(event) => props.examHeader.setField('candidateFields', event.target.checked)}
+              />
+              성명·수험번호 칸 넣기
+            </label>
+          </>
+        )}
       </fieldset>
     </div>
   );

@@ -348,11 +348,25 @@ export interface ExamSnapshot {
 
 export type ExportPart = 'questions' | 'answers' | 'explanations';
 
+/** 문제지 맨 위에 찍는 시험 정보. 확정본(내용)에는 들어가지 않고 출력할 때만 붙는다. */
+export interface ExamHeader {
+  /** 교시 등 시험지 이름 옆에 적는 말 (예: '1교시'). */
+  period?: string;
+  /** 시험 시간(분). */
+  durationMinutes?: number;
+  /** 문항당 배점. */
+  pointsPerQuestion?: number;
+  /** true 이면 성명·수험번호 칸을 넣고, false 이면 칸을 넣지 않는다. */
+  candidateFields: boolean;
+}
+
 export interface ExportOptions {
   parts: ExportPart[];
   templateId: string;
   /** true 이면 한 파일에 여러 파트, false 이면 파트별 별도 파일. */
   combineParts: boolean;
+  /** 없으면 예전처럼 '성명·점수' 줄만 넣는다. */
+  header?: ExamHeader;
 }
 
 export interface ExportedFile {

@@ -13,6 +13,7 @@ import type {
   Settings,
 } from '../../shared/index';
 import { requireText } from './bank';
+import { parseExamHeader } from './exam-header';
 
 const formats: ExportFormat[] = ['pdf', 'docx', 'xlsx'];
 const parts: ExportPart[] = ['questions', 'answers', 'explanations'];
@@ -58,7 +59,8 @@ export function createExportService(
       throw new Error('저장 형식(PDF·Word·Excel)을 하나 이상 선택하세요.');
     if (!Array.isArray(input.parts) || !input.parts.length || input.parts.some((p) => !parts.includes(p)))
       throw new Error('저장할 문서(문제지·정답지·해설지)를 하나 이상 선택하세요.');
-    return input;
+    const header = parseExamHeader(input.header);
+    return { ...input, header };
   };
   return {
     async export(
@@ -105,6 +107,7 @@ export function createExportService(
           parts: request.parts,
           templateId: 'standard',
           combineParts: !!request.combineParts,
+          ...(request.header ? { header: request.header } : {}),
         });
         for (const file of output) {
           const path = uniquePath(folder, file.fileName, taken);
