@@ -45,7 +45,7 @@ content-model, rng   → contracts
 registry             → contracts
 storage              → contracts, content-model
 layout-parser        → contracts, content-model, objective-code
-importers/*          → contracts, content-model, layout-parser
+importers/*          → contracts, content-model, layout-parser, importers/text (글자만 읽는 형식이 붙여넣기 해석을 재사용)
 validators/*         → contracts, content-model
 objective-code       → contracts
 rules                → contracts, objective-code
@@ -143,7 +143,7 @@ src/app/renderer/          React UI. 미리보기는 render-html 을 직접 사�
 
 ## 10. 한글(HWP) 관련 결정
 
-- **한글 읽기(가져오기)**: 보류. 문제 원본은 Word(.docx)로 변환해서 받는다. 필요해지면 `importers/hwp` 플러그인으로 추가 (후보: kordoc).
+- **가져오기 형식(v1.0.2)**: Word(.docx, 서식 보존) · PDF(`importers/pdf`, pdf.js 로 글자만 읽어 붙여넣기 해석 재사용) · 한글(.hwpx)·OpenDocument(.odt)·RTF·HTML(`importers/office-text`, 글자만) · 텍스트(.txt/.md, UTF-8 또는 CP949). 새 형식은 `importers/index.ts` 의 `allImporters` 에만 추가한다. 옛 .doc/.hwp(이진) 는 읽지 않는다(.docx/.hwpx 로 다시 저장 안내). 글자만 읽는 형식은 밑줄·표·그림·수식이 빠지며 검수 화면에 안내(info)를 남긴다.
 - **한글 저장(HWPX)**: 1차 범위 밖. 사용자 승인(스파이크 진행, 가능하면 지원). PDF/Word/Excel 완료 후 스파이크로 검증 (이미지·밑줄·표 보존, Windows 한글에서 열림). 통과하면 `exporters/hwpx` 플러그인으로 추가.
   참고: kordoc(`markdownToHwpx`, MIT), airmang/hwpx-plugins(python-hwpx, Apache-2.0). 이미지 지원은 미확인.
 - 위 도구는 개발 보조용 MCP/스킬로 설치(프로젝트 범위). 앱 배포물에는 스파이크 통과 전까지 포함하지 않는다.
@@ -166,7 +166,7 @@ src/app/renderer/          React UI. 미리보기는 render-html 을 직접 사�
   - **붙여넣기 지원**: PDF 에서 복사한 글자를 붙여 넣으면 번호·선지(①~⑤)를 자동으로 나누어 준다. 이미지는 클립보드/파일로 추가.
   - 저장 전에 검증기(validators)를 실행하고, 같은 지문의 기존 문제(`questionContentKey`)가 있으면 알려 준다(첫 문제만 사용 정책).
   - 학습목표 코드는 출제 규칙의 기준이므로 입력을 유도한다(없으면 출제 대상에서 제외됨을 표시).
-- PDF 자동 가져오기(`importers/pdf`)는 필요해지면 플러그인으로 추가(난이도 높음: 밑줄·이미지·표·스캔본 문제).
+- PDF 가져오기는 글자 추출만 한다(구현됨, v1.0.2). 밑줄·이미지·표는 못 읽고, 스캔본(글자 없는 PDF)은 오류로 알린다. OCR 은 아직 없다.
 
 ## 12. 이전의 보류 항목 (처리됨)
 

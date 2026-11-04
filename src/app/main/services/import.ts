@@ -4,7 +4,7 @@ import { basename, extname, isAbsolute } from 'node:path';
 import type { Diagnostic, ImportDraft, Question } from '../../../contracts/index';
 import { createRegistry } from '../../../core/registry/index';
 import { questionContentKey } from '../../../modules/content-model/index';
-import { docxImporter, textImporter } from '../../../modules/importers/index';
+import { allImporters, importerExtensions } from '../../../modules/importers/index';
 import type { Storage } from '../../../modules/storage/index';
 import type { ImportCommitResult, ImportReview } from '../../shared/index';
 import {
@@ -19,14 +19,19 @@ import {
 const MAX_BYTES = 50 * 1024 * 1024;
 async function readImportFile(path: unknown): Promise<{ fileName: string; data: Uint8Array }> {
   if (typeof path !== 'string' || !isAbsolute(path) || path.startsWith('\\\\') || path.includes('\0'))
-    throw new Error('파일 경로가 올바르지 않습니다. 이 PC의 Word 또는 텍스트 파일을 다시 선택하세요.');
-  if (!['.docx', '.txt'].includes(extname(path).toLowerCase()))
-    throw new Error('지원하지 않는 확장자입니다. .docx 또는 .txt 파일을 선택하세요.');
+    throw new Error('파일 경로가 올바르지 않습니다. 이 PC의 문서 파일을 다시 선택하세요.');
+  const extension = extname(path).toLowerCase();
+  if (!importerExtensions.includes(extension))
+    throw new Error(
+      extension === '.doc' || extension === '.hwp'
+        ? `${extension} 파일은 읽을 수 없습니다. Word/한글에서 .docx 또는 .hwpx 로 다시 저장한 뒤 가져오세요.`
+        : `지원하지 않는 확장자(${extension || '없음'})입니다. Word(.docx)·PDF·한글(.hwpx)·텍스트(.txt) 등의 문서를 선택하세요.`,
+    );
   let handle;
   try {
     handle = await open(path, 'r');
     const stat = await handle.stat();
-    if (!stat.isFile()) throw new Error('파일이 아닙니다. Word 또는 텍스트 파일을 선택하세요.');
+    if (!stat.isFile()) throw new Error('파일이 아닙니다. 문서 파일을 선택하세요.');
     if (stat.size > MAX_BYTES) throw new Error('파일이 50MB를 넘습니다. 문서를 나눈 뒤 다시 가져오세요.');
     const data = await handle.readFile();
     if (data.byteLength > MAX_BYTES)
@@ -44,8 +49,7 @@ export function createImportService(
   deps: { now: () => string; pickFiles: () => Promise<string[]>; id?: () => string },
 ) {
   const registry = createRegistry();
-  registry.register(docxImporter);
-  registry.register(textImporter);
+  for (const importer of allImporters) registry.register(importer);
   const batches = new Map<string, { review: ImportReview; busy: boolean }>();
   const id = deps.id ?? randomUUID;
   const batch = (value: unknown) => {

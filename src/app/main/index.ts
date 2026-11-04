@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { openStorage } from '../../modules/storage/index';
 import type { Storage } from '../../modules/storage/index';
+import { importerExtensions } from '../../modules/importers/index';
 import type { Settings } from '../shared/index';
 import { backupBeforeMigrate, getPaths, preparePaths } from './paths';
 import { createSettingsService, defaultSettings } from './settings';
@@ -135,7 +136,12 @@ if (!app.requestSingleInstanceLock()) {
               const result = await dialog.showOpenDialog(win, {
                 title: '문제 파일 선택',
                 properties: ['openFile', 'multiSelections'],
-                filters: [{ name: '문제 문서', extensions: ['docx', 'txt'] }],
+                filters: [
+                  {
+                    name: '문제 문서 (Word·PDF·한글·텍스트 등)',
+                    extensions: importerExtensions.map((extension) => extension.slice(1)),
+                  },
+                ],
               });
               return result.canceled ? [] : result.filePaths;
             },

@@ -19,7 +19,7 @@ const modules = [
   ['src/modules/updater', []],
 ];
 const plugins = {
-  importers: ['contracts', 'content-model', 'layout-parser'],
+  importers: ['contracts', 'content-model', 'layout-parser', 'importers/text'],
   validators: ['contracts', 'content-model'],
   constraints: ['contracts', 'content-model', 'objective-code'],
   shuffler: ['contracts', 'rng', 'objective-code'],
