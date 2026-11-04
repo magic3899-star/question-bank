@@ -7,10 +7,11 @@ const { join } = require('node:path');
 const root = join(__dirname, '..');
 const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 const tag = `v${version}`;
-const shell = process.platform === 'win32';
+// npm 은 Windows 에서 npm.cmd 라 shell 이 필요하지만, git·gh 는 shell 을 거치면 공백 있는 경로가 깨진다.
+const npmShell = process.platform === 'win32';
 
 function run(command, args, options = {}) {
-  const result = spawnSync(command, args, { cwd: root, encoding: 'utf8', shell, ...options });
+  const result = spawnSync(command, args, { cwd: root, encoding: 'utf8', ...options });
   return { ok: result.status === 0, out: `${result.stdout ?? ''}${result.stderr ?? ''}`.trim() };
 }
 
@@ -39,7 +40,7 @@ if (visibility !== 'PUBLIC') {
 }
 
 console.log(`${tag} 설치 파일을 만듭니다…`);
-const built = spawnSync('npm', ['run', 'dist'], { cwd: root, stdio: 'inherit', shell });
+const built = spawnSync('npm', ['run', 'dist'], { cwd: root, stdio: 'inherit', shell: npmShell });
 if (built.status !== 0) stop('설치 파일을 만들지 못했습니다.');
 
 const files = [
@@ -64,7 +65,7 @@ const released = spawnSync(
     '--target',
     'main',
   ],
-  { cwd: root, stdio: 'inherit', shell },
+  { cwd: root, stdio: 'inherit' },
 );
 if (released.status !== 0) stop('릴리스를 올리지 못했습니다.');
 console.log(`완료: ${tag}. 직원 PC 는 프로그램을 켜면 새 버전을 받아 다음 종료 때 설치합니다.`);
