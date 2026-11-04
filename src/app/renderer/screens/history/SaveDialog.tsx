@@ -44,7 +44,6 @@ export function SaveDialog({
             폴더 열기
           </Button>
         )}
-        <Button onClick={close}>닫기</Button>
         <Button
           variant="primary"
           disabled={busy}
