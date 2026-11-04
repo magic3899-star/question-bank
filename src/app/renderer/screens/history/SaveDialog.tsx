@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ExamSnapshot, ExportPart } from '../../../../contracts/index';
 import type { ExportFormat, ExportResult } from '../../../shared/index';
-import { Button, Dialog, ExportOptions, useExamHeader } from '../../components/index';
+import { Button, Dialog, ExportOptions, useExamHeader, useExamTypes } from '../../components/index';
 import { unwrap } from '../../lib/index';
 import styles from './SaveDialog.module.css';
 
@@ -15,6 +15,7 @@ export function SaveDialog({
   notify: (message: string) => void;
 }) {
   const examHeader = useExamHeader();
+  const examTypes = useExamTypes();
   const [formats, setFormats] = useState<ExportFormat[]>(['pdf']);
   const [parts, setParts] = useState<ExportPart[]>(['questions', 'answers', 'explanations']);
   const [combine, setCombine] = useState(false);
@@ -34,6 +35,7 @@ export function SaveDialog({
         exams={exams}
         setExams={setExams}
         examHeader={examHeader}
+        examTypes={examTypes}
       />
       {saved && <p>{saved.files.length}개 파일을 저장했습니다.</p>}
       <div className={styles.dialogActions}>
@@ -63,6 +65,7 @@ export function SaveDialog({
                 combineParts: combine,
                 examIndexes: exams,
                 ...examHeader.request,
+                ...examTypes.request,
               }),
             )
               .then((result) => result && setSaved(result))

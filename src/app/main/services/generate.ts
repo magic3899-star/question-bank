@@ -2,7 +2,12 @@ import { randomUUID } from 'node:crypto';
 import type { AssetData, ExamSnapshot, Question, RuleSet, ShuffleOptions } from '../../../contracts/index';
 import { collectAssetIds } from '../../../modules/content-model/index';
 import { standardConstraints } from '../../../modules/constraints/index';
-import { generateExams, regenerateExam, replaceQuestion } from '../../../modules/generation/index';
+import {
+  deriveVariant,
+  generateExams,
+  regenerateExam,
+  replaceQuestion,
+} from '../../../modules/generation/index';
 import { parseObjectiveCode } from '../../../modules/objective-code/index';
 import { createSelector } from '../../../modules/selector/index';
 import { shufflers } from '../../../modules/shuffler/index';
@@ -20,6 +25,7 @@ interface Session {
   snapshots: ExamSnapshot[];
   diagnostics: ExamSession['diagnostics'];
   saved: Set<string>;
+  paired: Set<string>;
   edits: number;
   busy: boolean;
 }
@@ -135,6 +141,7 @@ export function createGenerateService(
         snapshots: result.snapshots,
         diagnostics: result.diagnostics,
         saved: new Set(),
+        paired: new Set(),
         edits: 0,
         busy: false,
       };
@@ -196,10 +203,11 @@ export function createGenerateService(
     },
     applyChange(session: Session, examIndex: number, snapshot: ExamSnapshot): void {
       const previous = session.snapshots[examIndex]!;
-      // 저장 뒤에 바꾼 회차는 새 확정본이므로 새 ID 로 다음 저장 때 새 이력이 된다.
-      const examId = session.saved.has(previous.examId)
-        ? `${previous.examId}-r${session.edits}`
-        : previous.examId;
+      // 출력 실패 뒤에도 저장된 짝수형이 남을 수 있어, 파생 뒤 변경도 새 ID로 연결한다.
+      const examId =
+        session.saved.has(previous.examId) || session.paired.has(previous.examId)
+          ? `${previous.examId}-r${session.edits}`
+          : previous.examId;
       session.snapshots = session.snapshots.map((item, index) =>
         index === examIndex ? Object.freeze({ ...snapshot, examId }) : item,
       );
@@ -208,12 +216,34 @@ export function createGenerateService(
       sessions.delete(requireText(value, '시험 세션'));
     },
     /** 저장 서비스가 세션의 확정본을 쓰고, 저장한 회차를 표시한다. */
-    session(value: unknown): { snapshots: ExamSnapshot[]; rules: RuleSet; markSaved(ids: string[]): void } {
+    session(value: unknown) {
       const session = find(value);
       return {
         snapshots: session.snapshots,
         rules: session.rules,
-        markSaved: (ids) => ids.forEach((id) => session.saved.add(id)),
+        deriveEvenType: (snapshot: ExamSnapshot): ExamSnapshot => {
+          const ids = new Set(
+            snapshot.items.filter((item) => !item.blank).map((item) => item.sourceQuestionId),
+          );
+          const sources = session.candidates.filter((question) => ids.has(question.id));
+          if (sources.length !== ids.size)
+            throw new Error('시험을 만들 때 사용한 원본 문제를 찾을 수 없습니다. 시험을 다시 만들어 주세요.');
+          const result = deriveVariant(
+            {
+              rules: session.rules,
+              sources,
+              assets: snapshot.assets,
+              snapshot,
+              seed: `${snapshot.seed}/${snapshot.examId}`,
+              shuffle: session.shuffle,
+            },
+            { shufflers },
+          );
+          if (!result.snapshot) throw new Error(result.diagnostics.map((item) => item.message).join(' '));
+          session.paired.add(snapshot.examId);
+          return result.snapshot;
+        },
+        markSaved: (ids: string[]) => ids.forEach((id) => session.saved.add(id)),
       };
     },
   };

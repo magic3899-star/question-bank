@@ -92,6 +92,7 @@ function optionsMarkup(form: ExamHeaderForm) {
       setCombine: () => {},
       exams: [],
       setExams: () => {},
+      examTypes: { both: false, setBoth: () => {}, request: { examTypes: 'single' } },
       examHeader: { form, ...result, setField: () => {}, reason: Object.values(result.errors)[0] },
     }),
   );

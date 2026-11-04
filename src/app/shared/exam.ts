@@ -68,6 +68,7 @@ export interface ExportRequest {
   formats: ExportFormat[];
   parts: ExportPart[];
   combineParts: boolean;
+  examTypes?: 'single' | 'both';
   header?: ExamHeader;
   folder?: string;
 }

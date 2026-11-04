@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
-import type { ExamSnapshot, ExportPart } from '../../../contracts/index';
+import type { ExamSnapshot, ExportPart, RuleSet } from '../../../contracts/index';
 import { createExporters } from '../../../modules/exporters/index';
 import type { PdfRenderer } from '../../../modules/exporters/index';
 import type { Storage } from '../../../modules/storage/index';
@@ -14,6 +14,7 @@ import type {
 } from '../../shared/index';
 import { requireText } from './bank';
 import { parseExamHeader } from './exam-header';
+import { exportVariants, variantFileName } from './export-variants';
 
 const formats: ExportFormat[] = ['pdf', 'docx', 'xlsx'];
 const parts: ExportPart[] = ['questions', 'answers', 'explanations'];
@@ -41,9 +42,11 @@ export function createExportService(
       snapshots: ExamSnapshot[];
       rules: { id: string; name: string };
       markSaved(ids: string[]): void;
+      deriveEvenType(snapshot: ExamSnapshot): ExamSnapshot;
     };
     subjectName: (subject: string) => string;
     ruleName: (id: string) => Promise<string>;
+    getRules: (id: string) => Promise<RuleSet>;
   },
 ) {
   const allowed = new Set<string>();
@@ -51,6 +54,8 @@ export function createExportService(
   const parseRequest = (value: unknown): ExportRequest => {
     if (!value || typeof value !== 'object') throw new Error('저장할 시험과 형식을 선택하세요.');
     const input = value as ExportRequest;
+    if (input.examTypes !== undefined && input.examTypes !== 'single' && input.examTypes !== 'both')
+      throw new Error('시험지 종류는 한 가지 또는 홀수형·짝수형 두 가지로 선택해 주세요.');
     if (
       !Array.isArray(input.formats) ||
       !input.formats.length ||
@@ -97,7 +102,17 @@ export function createExportService(
       mkdirSync(folder, { recursive: true });
       const taken = new Set<string>();
       const files: ExportResult['files'] = [];
-      const jobs = request.formats.flatMap((format) => snapshots.map((snapshot) => ({ format, snapshot })));
+      const outputSnapshots: ExamSnapshot[] = [];
+      for (const snapshot of snapshots) {
+        outputSnapshots.push(
+          ...(request.examTypes === 'both'
+            ? await exportVariants(snapshot, storage, deps.getRules, session)
+            : [snapshot]),
+        );
+      }
+      const jobs = request.formats.flatMap((format) =>
+        outputSnapshots.map((snapshot) => ({ format, snapshot })),
+      );
       let done = 0;
       for (const { format, snapshot } of jobs) {
         onProgress?.({ done, total: jobs.length, current: `${snapshot.title} (${format.toUpperCase()})` });
@@ -110,7 +125,11 @@ export function createExportService(
           ...(request.header ? { header: request.header } : {}),
         });
         for (const file of output) {
-          const path = uniquePath(folder, file.fileName, taken);
+          const fileName =
+            request.examTypes === 'both'
+              ? variantFileName(snapshot, file, exporter.extension)
+              : file.fileName;
+          const path = uniquePath(folder, fileName, taken);
           writeFileSync(path, file.data);
           allowed.add(path.toLowerCase());
           files.push({ path, format, part: file.part, examTitle: snapshot.title });
@@ -182,7 +201,7 @@ export function createExportService(
       if (!Array.isArray(value) || !value.length) throw new Error('지울 출제 이력을 선택하세요.');
       const ids = value.map((id) => requireText(id, '시험 ID'));
       await storage.history.delete(ids);
-      await storage.snapshots.delete(ids);
+      await storage.snapshots.delete(ids.flatMap((id) => [id, `${id}-even`]));
     },
   };
 }

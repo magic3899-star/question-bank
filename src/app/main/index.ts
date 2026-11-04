@@ -202,6 +202,7 @@ if (!app.requestSingleInstanceLock()) {
               session: (id) => generate.session(id),
               subjectName,
               ruleName: async (id) => (await db.ruleSets.get(id))?.name ?? id,
+              getRules: (id) => rules!.get(id),
             })
           : undefined;
       const backup = db

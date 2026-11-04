@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeExportSnapshot } from '../../../../tests/fixtures/exportSnapshot';
+import { makeRuleSet } from '../../../../tests/fixtures/builders';
 import { docxExporter } from '../../../modules/exporters/docx/index';
 import { openStorage } from '../../../modules/storage/index';
 import type { Storage } from '../../../modules/storage/index';
@@ -32,9 +33,11 @@ function service() {
       snapshots: [makeExportSnapshot()],
       rules: { id: 'fake', name: '가짜' },
       markSaved: () => {},
+      deriveEvenType: () => makeExportSnapshot(),
     }),
     subjectName: (id) => id,
     ruleName: async () => '가짜 규칙',
+    getRules: async () => makeRuleSet(),
   });
 }
 const request = {

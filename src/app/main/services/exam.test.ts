@@ -54,6 +54,7 @@ function services() {
     session: (id) => generate.session(id),
     subjectName: (s) => s,
     ruleName: async (id) => (await storage.ruleSets.get(id))?.name ?? id,
+    getRules: (id) => rules.get(id),
   });
   return { rules, generate, exporter };
 }

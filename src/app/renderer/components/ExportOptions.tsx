@@ -1,8 +1,10 @@
+import { useId } from 'react';
 import type { ExamSnapshot, ExportPart } from '../../../contracts/index';
 import type { ExportFormat } from '../../shared/index';
 import styles from './ExportOptions.module.css';
 import { Input } from './Input';
 import type { useExamHeader } from './useExamHeader';
+import type { useExamTypes } from './useExamTypes';
 
 const formatItems: { id: ExportFormat; label: string }[] = [
   { id: 'pdf', label: 'PDF' },
@@ -31,7 +33,9 @@ export function ExportOptions(props: {
   exams: number[];
   setExams: (value: number[]) => void;
   examHeader: ReturnType<typeof useExamHeader>;
+  examTypes: ReturnType<typeof useExamTypes>;
 }) {
+  const typesHintId = useId();
   return (
     <div className={styles.exportGrid}>
       <fieldset>
@@ -76,6 +80,22 @@ export function ExportOptions(props: {
             {snapshot.title}
           </label>
         ))}
+      </fieldset>
+      <fieldset className={styles.header}>
+        <legend>시험지 종류</legend>
+        <label className={styles.inline}>
+          <input
+            type="checkbox"
+            checked={props.examTypes.both}
+            onChange={(event) => props.examTypes.setBoth(event.target.checked)}
+            aria-describedby={typesHintId}
+          />
+          홀수형·짝수형 두 가지로 저장
+        </label>
+        <p id={typesHintId} className={styles.hint}>
+          같은 문제를 번호 순서와 선지 순서만 다르게 섞은 짝수형을 함께 저장합니다. 정답지·해설지도 형별로
+          따로 만들어집니다.
+        </p>
       </fieldset>
       <fieldset className={styles.header}>
         <legend>시험지 머리</legend>

@@ -25,4 +25,5 @@ export { ExamPaper } from './ExamPaper';
 export { SlotBars } from './SlotBars';
 export { ExportOptions } from './ExportOptions';
 export { useExamHeader } from './useExamHeader';
+export { useExamTypes } from './useExamTypes';
 export { DiagnosticSummary } from './DiagnosticSummary';
