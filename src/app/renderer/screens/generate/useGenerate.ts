@@ -23,6 +23,7 @@ export interface GenerateOptions {
 export const defaultOptions: GenerateOptions = {
   shuffle: {
     shuffleQuestionOrder: true,
+    sortByObjective: true,
     shuffleChoices: true,
     balanceAnswerPositions: true,
     minAnswerPositionShare: 0.1,

@@ -1,4 +1,5 @@
 import type { Question, Rng, SelectedExam, Shuffler } from '../../../contracts/index';
+import { compareObjectiveCodes } from '../../objective-code/index';
 import { shuffled } from '../../rng/index';
 
 function balancedTargets(questions: Question[], rng: Rng, share: number): Map<string, number> {
@@ -48,6 +49,22 @@ function balancedTargets(questions: Question[], rng: Rng, share: number): Map<st
   return targets;
 }
 
+/** 예문 묶음은 가장 앞선 학습목표를 기준으로 하고, 학습목표가 없는 문제는 맨 뒤로 보낸다. */
+function unitCode(unit: Question[]): string | undefined {
+  const codes = unit.flatMap((question) =>
+    question.objectiveCode?.trim() ? [question.objectiveCode.trim()] : [],
+  );
+  return codes.sort(compareObjectiveCodes)[0];
+}
+
+function compareUnits(a: Question[], b: Question[]): number {
+  const left = unitCode(a);
+  const right = unitCode(b);
+  if (left === undefined || right === undefined)
+    return left === undefined ? (right === undefined ? 0 : 1) : -1;
+  return compareObjectiveCodes(left, right);
+}
+
 export const standardShuffler: Shuffler = {
   kind: 'shuffler',
   id: 'standard',
@@ -78,9 +95,9 @@ export const standardShuffler: Shuffler = {
           question.choices[position] = position === target && answer ? answer : movable[index++];
       }
     }
-    if (options.shuffleQuestionOrder) {
+    if (options.shuffleQuestionOrder || options.sortByObjective) {
       const groups = new Map<string, Question[]>();
-      const units: Question[][] = [];
+      let units: Question[][] = [];
       for (const question of result.questions) {
         if (!question.passageGroupId) {
           units.push([question]);
@@ -94,7 +111,10 @@ export const standardShuffler: Shuffler = {
         }
         group.push(question);
       }
-      result.questions = shuffled(units, rng.fork('order')).flat();
+      if (options.shuffleQuestionOrder) units = shuffled(units, rng.fork('order'));
+      // 먼저 섞고 안정 정렬하므로, 같은 학습목표 안의 순서는 무작위로 남는다.
+      if (options.sortByObjective) units = [...units].sort(compareUnits);
+      result.questions = units.flat();
     }
     return result;
   },

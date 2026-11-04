@@ -198,13 +198,27 @@ export function replaceQuestion(
       ).questions[0]!
     : single.questions[0]!;
   const nextQuestions = exam.questions.map((question) => (question.id === current.id ? shuffled : question));
-  const nextExam: SelectedExam = {
+  const replaced: SelectedExam = {
     questions: nextQuestions,
     slotOfQuestion: Object.fromEntries(
       nextQuestions.map((question) => [question.id, slotOf(input.rules, question)?.id ?? '']),
     ),
     blanks: exam.blanks,
   };
+  // 바뀐 문제의 학습목표가 달라도 번호가 학습목표 순서를 벗어나지 않게 다시 정렬한다.
+  const nextExam =
+    input.shuffle.sortByObjective && shuffler
+      ? shuffler.apply(
+          replaced,
+          {
+            shuffleQuestionOrder: false,
+            shuffleChoices: false,
+            balanceAnswerPositions: false,
+            sortByObjective: true,
+          },
+          rng.fork('sort'),
+        )
+      : replaced;
   const rebuilt = rebuild(input, nextExam, original);
   return {
     snapshot: rebuilt.snapshot,

@@ -31,6 +31,7 @@ function parseShuffle(value: unknown): ShuffleSettings {
     throw new Error('정답 위치 최소 비율은 0~20% 사이로 입력하세요.');
   return {
     shuffleQuestionOrder: input.shuffleQuestionOrder !== false,
+    sortByObjective: input.sortByObjective !== false,
     shuffleChoices: input.shuffleChoices !== false,
     balanceAnswerPositions: input.balanceAnswerPositions !== false,
     minAnswerPositionShare: share,

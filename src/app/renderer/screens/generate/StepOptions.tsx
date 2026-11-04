@@ -6,24 +6,29 @@ import styles from './StepOptions.module.css';
 export function StepOptions({ model }: { model: ReturnType<typeof useGenerate> }) {
   const { options, setOptions } = model;
   const shuffle = options.shuffle;
-  const toggle = (key: 'shuffleQuestionOrder' | 'shuffleChoices' | 'balanceAnswerPositions') =>
+  const toggle = (key: 'sortByObjective' | 'shuffleChoices' | 'balanceAnswerPositions') =>
     setOptions({ ...options, shuffle: { ...shuffle, [key]: !shuffle[key] } });
   return (
     <div className={styles.step}>
       <div className={styles.heading}>
         <h2>섞기와 출제 옵션</h2>
-        <p>기본값 그대로 두면 문제와 선지를 모두 섞고, 정답 위치가 한쪽으로 쏠리지 않게 합니다.</p>
+        <p>
+          기본값 그대로 두면 문제 번호는 학습목표 순서로 배치하고, 선지는 섞고, 정답 위치가 한쪽으로 쏠리지
+          않게 합니다.
+        </p>
       </div>
       <div className={styles.form}>
         <label className={styles.check}>
           <input
             type="checkbox"
-            checked={shuffle.shuffleQuestionOrder}
-            onChange={() => toggle('shuffleQuestionOrder')}
+            checked={shuffle.sortByObjective}
+            onChange={() => toggle('sortByObjective')}
           />
           <span>
-            <strong>문제 순서 섞기</strong>
-            <small>회차마다 문제 순서를 무작위로 바꿉니다.</small>
+            <strong>학습목표 순으로 번호 매기기</strong>
+            <small>
+              1장(의료법)부터 단원 순서대로 문제 번호를 매깁니다. 끄면 문제 순서를 무작위로 섞습니다.
+            </small>
           </span>
         </label>
         <label className={styles.check}>

@@ -280,6 +280,11 @@ export interface Constraint {
 
 export interface ShuffleOptions {
   shuffleQuestionOrder: boolean;
+  /**
+   * 문제 번호를 학습목표 순서(법규 1-1-1 → 1-1-3 → 1-2-…)로 배치한다. 같은 학습목표 안의 순서만 섞기 설정을 따른다.
+   * 같은 예문 묶음은 항상 붙어 있다.
+   */
+  sortByObjective?: boolean;
   shuffleChoices: boolean;
   /** 정답 위치(①~⑤)가 한쪽으로 쏠리지 않게 보정 (아래 최소 비율만 보장하고 나머지는 무작위) */
   balanceAnswerPositions: boolean;

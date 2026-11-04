@@ -33,6 +33,8 @@ export interface RuleCheck {
 
 export interface ShuffleSettings {
   shuffleQuestionOrder: boolean;
+  /** 문제 번호를 학습목표 순으로 배치(기본). 끄면 무작위 순서. */
+  sortByObjective: boolean;
   shuffleChoices: boolean;
   balanceAnswerPositions: boolean;
   minAnswerPositionShare: number;

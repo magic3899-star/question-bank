@@ -25,6 +25,46 @@ describe('기본 섞기', () => {
     );
     expect(result.slotOfQuestion).toEqual(exam.slotOfQuestion);
   });
+  it('학습목표 순 정렬: 숫자 순서로 배치하고 예문 묶음은 붙여 두며 학습목표 없는 문제는 뒤로 보낸다', () => {
+    const codes = ['법규 3-1-5', '법규 1-1-10', '법규 1-1-3', '법규 2-1-4', '법규 1-2-1'];
+    const questions = [
+      ...codes.map((objectiveCode, index) => makeQuestion({ id: `q${index}`, objectiveCode })),
+      makeQuestion({ id: 'none', objectiveCode: undefined }),
+      makeQuestion({ id: 'p1', passageGroupId: 'g', objectiveCode: '법규 4-1-1' }),
+      makeQuestion({ id: 'p2', passageGroupId: 'g', objectiveCode: '법규 1-1-4' }),
+    ];
+    const exam = { questions, blanks: [], slotOfQuestion: {} };
+    for (const seed of ['s1', 's2', 's3', 's4']) {
+      const result = standardShuffler.apply(
+        deepFreeze(exam),
+        { ...options, sortByObjective: true },
+        createRng(seed),
+      );
+      expect(result.questions.map((question) => question.objectiveCode)).toEqual([
+        '법규 1-1-3',
+        '법규 4-1-1',
+        '법규 1-1-4',
+        '법규 1-1-10',
+        '법규 1-2-1',
+        '법규 2-1-4',
+        '법규 3-1-5',
+        undefined,
+      ]);
+    }
+  });
+  it('학습목표 순 정렬: 같은 학습목표 안의 순서는 시드에 따라 달라지고 같은 시드면 같다', () => {
+    const questions = Array.from({ length: 8 }, (_, index) =>
+      makeQuestion({ id: `same${index}`, objectiveCode: '법규 1-1-1' }),
+    );
+    const exam = { questions, blanks: [], slotOfQuestion: {} };
+    const run = (seed: string) =>
+      standardShuffler
+        .apply(exam, { ...options, sortByObjective: true }, createRng(seed))
+        .questions.map((question) => question.id)
+        .join();
+    expect(run('a')).toBe(run('a'));
+    expect(new Set(['a', 'b', 'c', 'd', 'e'].map(run)).size).toBeGreaterThan(1);
+  });
   it('고정 정답·모든 선지 고정·복수 정답·빈 시험을 처리한다', () => {
     const questions = [
       makeQuestion({

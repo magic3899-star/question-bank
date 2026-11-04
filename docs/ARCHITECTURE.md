@@ -51,7 +51,7 @@ objective-code       → contracts
 rules                → contracts, objective-code
 constraints/*        → contracts, content-model, objective-code
 selector             → contracts, content-model, objective-code, rng   (제약은 주입받는다)
-shuffler/*           → contracts, rng(타입은 contracts)
+shuffler/*           → contracts, rng, objective-code (학습목표 순 정렬)
 exam-snapshot        → contracts, content-model
 generation           → contracts, exam-snapshot, content-model, rng   (selector/shuffler는 주입받는다)
 render-html          → contracts, content-model

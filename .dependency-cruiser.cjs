@@ -22,7 +22,7 @@ const plugins = {
   importers: ['contracts', 'content-model', 'layout-parser'],
   validators: ['contracts', 'content-model'],
   constraints: ['contracts', 'content-model', 'objective-code'],
-  shuffler: ['contracts', 'rng'],
+  shuffler: ['contracts', 'rng', 'objective-code'],
   exporters: ['contracts', 'content-model', 'render-html'],
 };
 for (const [family, allowed] of Object.entries(plugins)) {

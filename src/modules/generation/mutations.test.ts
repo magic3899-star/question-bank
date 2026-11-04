@@ -5,7 +5,7 @@ import { standardConstraints } from '../constraints/index';
 import { createSelector } from '../selector/index';
 import { shufflers } from '../shuffler/index';
 import { verifySnapshot } from '../exam-snapshot/index';
-import { segmentKey } from '../objective-code/index';
+import { compareObjectiveCodes, segmentKey } from '../objective-code/index';
 import { deepFreeze } from '../../../tests/fixtures/builders';
 import { makeExamBank, makeExamRules } from '../../../tests/fixtures/examBank';
 import { assertSnapshotMatchesSource } from '../../../tests/e2e/assertSnapshotMatchesSource';
@@ -178,6 +178,73 @@ describe('문제 1개 바꾸기', () => {
     expect(JSON.stringify(replaceQuestion(input, replaceDeps))).toBe(
       JSON.stringify(replaceQuestion(input, replaceDeps)),
     );
+  });
+});
+
+describe('학습목표 순 번호', () => {
+  const sorted = { ...shuffle, sortByObjective: true };
+  const codesOf = (snapshot: ExamSnapshot) =>
+    snapshot.items.filter((item) => !item.blank).map((item) => item.objectiveCode!);
+  const expectOrdered = (snapshot: ExamSnapshot) => {
+    const codes = codesOf(snapshot);
+    for (let index = 1; index < codes.length; index++)
+      expect(compareObjectiveCodes(codes[index - 1]!, codes[index]!), codes.join()).toBeLessThanOrEqual(0);
+  };
+  const build = (seed: string) => {
+    const result = generateExams(
+      {
+        rules: makeExamRules('law'),
+        candidates: bank.questions,
+        assets: bank.assets,
+        history: [],
+        seed,
+        shuffle: sorted,
+        titleTemplate: '가짜 모의고사 {회차}회',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        examIdPrefix: 'fake',
+      },
+      generationDeps,
+    );
+    expect(result.ok).toBe(true);
+    return result.snapshots;
+  };
+
+  it('출제 직후 모든 회차의 번호가 학습목표 순이다', () => {
+    for (const seed of ['o1', 'o2', 'o3']) for (const snapshot of build(seed)) expectOrdered(snapshot);
+  });
+
+  it('문제를 바꾸거나 회차를 다시 뽑아도 학습목표 순이 유지된다', () => {
+    const snapshots = build('o4');
+    for (const item of snapshots[0]!.items.filter((entry) => !entry.blank)) {
+      const result = replaceQuestion(
+        {
+          rules: makeExamRules('law'),
+          candidates: bank.questions,
+          assets: bank.assets,
+          run: snapshots,
+          examIndex: 0,
+          number: item.number,
+          seed: 'o4',
+          shuffle: sorted,
+        },
+        replaceDeps,
+      );
+      if (result.snapshot) expectOrdered(result.snapshot);
+    }
+    const again = regenerateExam(
+      {
+        rules: makeExamRules('law'),
+        candidates: bank.questions,
+        assets: bank.assets,
+        run: snapshots,
+        examIndex: 2,
+        seed: 'o4-again',
+        shuffle: sorted,
+      },
+      generationDeps,
+    );
+    expect(again.snapshot).toBeDefined();
+    expectOrdered(again.snapshot!);
   });
 });
 
