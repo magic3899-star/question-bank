@@ -6,6 +6,8 @@ import type { JoinWrappedLinesWith } from './cleanup';
 export { parseExplanationText } from './explanation';
 export type { ExplanationTextOptions, TextExplanation } from './explanation';
 export type { JoinWrappedLinesWith } from './cleanup';
+export { cleanupOcrLines, reportProgress } from './ocr-cleanup';
+export type { ImportProgress, OcrRecognize } from './ocr-cleanup';
 
 export interface TextOptions extends LayoutOptions {
   profile?: LayoutProfile;

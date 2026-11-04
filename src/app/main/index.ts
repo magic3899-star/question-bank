@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { openStorage } from '../../modules/storage/index';
 import type { Storage } from '../../modules/storage/index';
 import { importerExtensions } from '../../modules/importers/index';
+import { createAppOcr } from './ocr';
 import type { Settings } from '../shared/index';
 import { backupBeforeMigrate, getPaths, preparePaths } from './paths';
 import { createSettingsService, defaultSettings } from './settings';
@@ -33,6 +34,7 @@ if (process.env.QB_CAPTURE_DIR) {
 }
 let window: BrowserWindow | undefined;
 let storage: Storage | undefined;
+const ocr = createAppOcr();
 const now = (): string => new Date().toISOString();
 if (!app.requestSingleInstanceLock()) {
   if (process.env.QB_CAPTURE_DIR) {
@@ -132,13 +134,14 @@ if (!app.requestSingleInstanceLock()) {
       const importer = storage
         ? createImportService(storage, {
             now,
+            ocr: (image) => ocr.recognize(image),
             pickFiles: async () => {
               const result = await dialog.showOpenDialog(win, {
                 title: '문제 파일 선택',
                 properties: ['openFile', 'multiSelections'],
                 filters: [
                   {
-                    name: '문제 문서 (Word·PDF·한글·텍스트 등)',
+                    name: '문제 문서 (Word·PDF·한글·텍스트·이미지 등)',
                     extensions: importerExtensions.map((extension) => extension.slice(1)),
                   },
                 ],
@@ -345,5 +348,8 @@ if (!app.requestSingleInstanceLock()) {
       app.exit(1);
     });
   app.on('window-all-closed', () => app.quit());
-  app.on('will-quit', () => storage?.close());
+  app.on('will-quit', () => {
+    void ocr.close();
+    storage?.close();
+  });
 }

@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ImportCommitResult, ImportOptions, ImportPatch, ImportReview } from '../../../shared/index';
+import type {
+  ImportAnalyzeProgress,
+  ImportCommitResult,
+  ImportOptions,
+  ImportPatch,
+  ImportReview,
+} from '../../../shared/index';
 import { unwrap } from '../../lib/index';
 import { editedReview } from './review';
 
@@ -16,10 +22,12 @@ export function useImport() {
   const [busy, setBusy] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [progress, setProgress] = useState<ImportAnalyzeProgress>();
   const [saved, setSaved] = useState<{ batchId: string; result: ImportCommitResult }>();
   const batchRef = useRef<string | undefined>(undefined);
   const active = useRef(true);
   const working = useRef(false);
+  useEffect(() => window.qb.import.onProgress(setProgress), []);
   useEffect(() => {
     active.current = true;
     return () => {
@@ -33,6 +41,7 @@ export function useImport() {
     working.current = true;
     setBusy(true);
     setError('');
+    setProgress(undefined);
     setFiles(paths.map((p) => p.split(/[\\/]/u).at(-1) ?? p));
     try {
       if (batchRef.current) await unwrap(window.qb.import.discard(batchRef.current));
@@ -50,7 +59,10 @@ export function useImport() {
       if (active.current) setError((cause as Error).message);
     } finally {
       working.current = false;
-      if (active.current) setBusy(false);
+      if (active.current) {
+        setBusy(false);
+        setProgress(undefined);
+      }
     }
   };
   const acceptCapture = (next: ImportReview) => {
@@ -95,6 +107,7 @@ export function useImport() {
     setOptions,
     review: edited,
     busy,
+    progress,
     files,
     error,
     setError,

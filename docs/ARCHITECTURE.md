@@ -46,6 +46,7 @@ registry             → contracts
 storage              → contracts, content-model
 layout-parser        → contracts, content-model, objective-code
 importers/*          → contracts, content-model, layout-parser, importers/text (글자만 읽는 형식이 붙여넣기 해석을 재사용)
+ocr                  → (import 없음. 앱 계층이 주입)
 validators/*         → contracts, content-model
 objective-code       → contracts
 rules                → contracts, objective-code
@@ -166,7 +167,7 @@ src/app/renderer/          React UI. 미리보기는 render-html 을 직접 사�
   - **붙여넣기 지원**: PDF 에서 복사한 글자를 붙여 넣으면 번호·선지(①~⑤)를 자동으로 나누어 준다. 이미지는 클립보드/파일로 추가.
   - 저장 전에 검증기(validators)를 실행하고, 같은 지문의 기존 문제(`questionContentKey`)가 있으면 알려 준다(첫 문제만 사용 정책).
   - 학습목표 코드는 출제 규칙의 기준이므로 입력을 유도한다(없으면 출제 대상에서 제외됨을 표시).
-- PDF 가져오기는 글자 추출만 한다(구현됨, v1.0.2). 밑줄·이미지·표는 못 읽고, 스캔본(글자 없는 PDF)은 오류로 알린다. OCR 은 아직 없다.
+- PDF 가져오기는 글자 추출만 한다(v1.0.2). 밑줄·이미지·표는 못 읽는다. 글자 없는 스캔본 PDF 와 이미지(.png/.jpg/.bmp/.webp)는 글자 인식(OCR, v1.0.3)으로 읽는다: `modules/ocr`(tesseract.js, 한국어 데이터를 설치 파일에 포함해 인터넷 불필요, 2단 조판은 단 사이 여백에서 좌우로 잘라 따로 인식, 실패·120초 초과 시 인식기를 정리하고 다음 호출에서 재시작)를 `app/main/ocr.ts` 가 만들어 가져오기 서비스에 주입한다(importers 는 ocr 모듈을 직접 import 하지 않는다). 깨져 읽힌 ①~⑤ 는 `importers/text/ocr-cleanup.ts` 가 연속된 선지 줄 순서로 복원한다. 인식 오류(특히 정답 번호)는 검수 화면에서 확인해야 한다. 참고: Node 에서 tesseract.js 는 `-lstm` 이 아닌 일반 코어를 읽으므로 패키징에서 일반 코어를 빼면 안 된다(`.tmp-realcheck/ocr-probe/pkprobe.cjs` 로 패키지 확인).
 
 ## 12. 이전의 보류 항목 (처리됨)
 

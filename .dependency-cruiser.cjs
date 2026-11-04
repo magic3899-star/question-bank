@@ -17,6 +17,7 @@ const modules = [
   ['src/modules/history', ['contracts']],
   ['src/modules/backup', ['contracts']],
   ['src/modules/updater', []],
+  ['src/modules/ocr', []],
 ];
 const plugins = {
   importers: ['contracts', 'content-model', 'layout-parser', 'importers/text'],

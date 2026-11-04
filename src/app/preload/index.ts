@@ -22,6 +22,7 @@ const api: QbApi = {
     analyze: (value) => ipcRenderer.invoke(channels.importAnalyze, value),
     commit: (value) => ipcRenderer.invoke(channels.importCommit, value),
     discard: (value) => ipcRenderer.invoke(channels.importDiscard, value),
+    onProgress: (listener) => subscribe(events.importProgress, listener),
   },
   app: {
     info: () => ipcRenderer.invoke(channels.appInfo),

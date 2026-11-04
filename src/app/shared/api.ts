@@ -6,7 +6,13 @@ import type {
   SaveRequest,
   SaveResult,
 } from './editor';
-import type { ImportCommitResult, ImportOptions, ImportPatch, ImportReview } from './import';
+import type {
+  ImportAnalyzeProgress,
+  ImportCommitResult,
+  ImportOptions,
+  ImportPatch,
+  ImportReview,
+} from './import';
 import type {
   BackupInfo,
   ExamSession,
@@ -74,6 +80,7 @@ export const channels = {
 /** main → 화면 알림 채널(요청-응답이 아님). */
 export const events = {
   exportProgress: 'event:export-progress',
+  importProgress: 'event:import-progress',
   updateStatus: 'event:update-status',
 } as const;
 export type Theme = 'system' | 'light' | 'dark';
@@ -147,6 +154,7 @@ export interface QbApi {
     analyze(request: { paths: string[]; options: ImportOptions }): Promise<Result<ImportReview>>;
     commit(request: { batchId: string; patches: ImportPatch[] }): Promise<Result<ImportCommitResult>>;
     discard(batchId: string): Promise<Result<void>>;
+    onProgress(listener: (progress: ImportAnalyzeProgress) => void): () => void;
   };
   app: {
     info(): Promise<Result<AppInfo>>;

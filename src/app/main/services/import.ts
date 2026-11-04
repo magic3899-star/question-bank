@@ -4,9 +4,10 @@ import { basename, extname, isAbsolute } from 'node:path';
 import type { Diagnostic, ImportDraft, Question } from '../../../contracts/index';
 import { createRegistry } from '../../../core/registry/index';
 import { questionContentKey } from '../../../modules/content-model/index';
-import { allImporters, importerExtensions } from '../../../modules/importers/index';
+import { createImporters, importerExtensions } from '../../../modules/importers/index';
+import type { OcrRecognize } from '../../../modules/importers/index';
 import type { Storage } from '../../../modules/storage/index';
-import type { ImportCommitResult, ImportReview } from '../../shared/index';
+import type { ImportAnalyzeProgress, ImportCommitResult, ImportReview } from '../../shared/index';
 import {
   questionAssetIds,
   reviewItem,
@@ -46,10 +47,10 @@ async function readImportFile(path: unknown): Promise<{ fileName: string; data: 
 }
 export function createImportService(
   storage: Storage,
-  deps: { now: () => string; pickFiles: () => Promise<string[]>; id?: () => string },
+  deps: { now: () => string; pickFiles: () => Promise<string[]>; id?: () => string; ocr?: OcrRecognize },
 ) {
   const registry = createRegistry();
-  for (const importer of allImporters) registry.register(importer);
+  for (const importer of createImporters({ ocr: deps.ocr })) registry.register(importer);
   const batches = new Map<string, { review: ImportReview; busy: boolean }>();
   const id = deps.id ?? randomUUID;
   const batch = (value: unknown) => {
@@ -61,7 +62,10 @@ export function createImportService(
   };
   return {
     pickFiles: deps.pickFiles,
-    async analyze(value: unknown): Promise<ImportReview> {
+    async analyze(
+      value: unknown,
+      onProgress?: (progress: ImportAnalyzeProgress) => void,
+    ): Promise<ImportReview> {
       if (!value || typeof value !== 'object') throw new Error('가져올 파일과 과목을 선택하세요.');
       const input = value as Record<string, unknown>;
       const options = validateOptions(input.options);
@@ -73,7 +77,14 @@ export function createImportService(
         const importer = registry
           .all('importer')
           .find((p) => p.extensions.includes(extname(file.fileName).toLowerCase()))!;
-        parsed.push({ name: file.fileName, draft: await importer.parse(file, { ...options }) });
+        parsed.push({
+          name: file.fileName,
+          draft: await importer.parse(file, {
+            ...options,
+            onProgress: (progress: Omit<ImportAnalyzeProgress, 'file'>) =>
+              onProgress?.({ file: file.fileName, ...progress }),
+          }),
+        });
       }
       const batchId = id();
       const review: ImportReview = {

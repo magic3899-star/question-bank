@@ -8,9 +8,15 @@ interface PdfTextItem {
 }
 interface PdfPage {
   getTextContent(): Promise<{ items: unknown[] }>;
+  getViewport(options: { scale: number }): { width: number; height: number };
+  render(options: Record<string, unknown>): { promise: Promise<void> };
+}
+interface PdfCanvas {
+  encode(format: 'png'): Promise<Uint8Array>;
 }
 interface PdfDocument {
   numPages: number;
+  canvasFactory?: { create(width: number, height: number): { canvas: PdfCanvas; context: unknown } };
   getPage(index: number): Promise<PdfPage>;
   destroy(): Promise<void>;
 }
@@ -104,6 +110,51 @@ export async function extractPdfLines(data: Uint8Array): Promise<{ lines: string
       'PDF_INVALID',
       'PDF의 글자를 읽는 중 오류가 났습니다. 다른 PDF로 다시 시도하세요.',
     );
+  } finally {
+    await document.destroy().catch(() => undefined);
+  }
+}
+
+/** 한 쪽의 긴 변이 이 값(픽셀)을 넘지 않게 그린다. 너무 크면 인식이 느려지고 메모리를 많이 쓴다. */
+const MAX_PAGE_PIXELS = 3200;
+
+/**
+ * 스캔본 PDF 의 각 쪽을 글자 인식용 PNG 로 그린다(쪽 순서대로, 한 번에 한 쪽만 메모리에 둔다).
+ */
+export async function* renderPdfPages(
+  data: Uint8Array,
+  scale = 3,
+): AsyncGenerator<{ png: Uint8Array; page: number; pages: number }> {
+  const pdfjs = await loadPdfJs();
+  const document = await pdfjs
+    .getDocument({
+      data: new Uint8Array(data),
+      isEvalSupported: false,
+      useSystemFonts: false,
+      disableFontFace: true,
+      verbosity: 0,
+    })
+    .promise.catch((cause: unknown) => {
+      const name = cause instanceof Error ? cause.name : '';
+      throw name === 'PasswordException'
+        ? new PdfReadError('PDF_PASSWORD', '암호가 걸린 PDF입니다. 암호를 푼 파일로 다시 가져오세요.')
+        : new PdfReadError('PDF_INVALID', 'PDF를 열 수 없습니다. 파일이 손상되었거나 PDF가 아닙니다.');
+    });
+  try {
+    if (!document.canvasFactory)
+      throw new PdfReadError('PDF_INVALID', '쪽을 그릴 수 없습니다. 프로그램을 다시 설치하세요.');
+    for (let index = 1; index <= document.numPages; index++) {
+      const page = await document.getPage(index);
+      const base = page.getViewport({ scale: 1 });
+      const fit = Math.min(scale, MAX_PAGE_PIXELS / Math.max(base.width, base.height));
+      const viewport = page.getViewport({ scale: fit });
+      const { canvas, context } = document.canvasFactory.create(
+        Math.ceil(viewport.width),
+        Math.ceil(viewport.height),
+      );
+      await page.render({ canvasContext: context, viewport, canvas }).promise;
+      yield { png: await canvas.encode('png'), page: index, pages: document.numPages };
+    }
   } finally {
     await document.destroy().catch(() => undefined);
   }

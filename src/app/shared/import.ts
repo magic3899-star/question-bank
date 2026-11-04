@@ -26,6 +26,14 @@ export interface ImportItem {
   summary: QuestionSummary;
   draft: Question;
 }
+/** 가져오기 분석 중 오래 걸리는 단계(글자 인식)의 진행 상황. */
+export interface ImportAnalyzeProgress {
+  file: string;
+  label: string;
+  done: number;
+  total: number;
+}
+
 export interface ImportReview {
   batchId: string;
   files: { name: string; questions: number; skipped: number }[];

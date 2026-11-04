@@ -49,6 +49,12 @@ export function ImportScreen({ settings, query }: ScreenProps) {
           <Spinner />
           <h2>{review ? '문제를 저장하고 있습니다' : '문서를 분석하고 있습니다'}</h2>
           <p>문서 해석 → 검증 → 은행과 중복 검사</p>
+          {model.progress && (
+            <p>
+              {model.progress.file}: {model.progress.label} {model.progress.done}/{model.progress.total}
+              {model.progress.total > 1 ? '쪽' : ''} (글자 인식은 쪽당 몇 초 걸립니다)
+            </p>
+          )}
           <ul>
             {model.files.map((name, i) => (
               <li key={i}>{name}</li>
@@ -122,9 +128,10 @@ export function ImportScreen({ settings, query }: ScreenProps) {
           >
             <Upload aria-hidden="true" />
             <h2>문서 파일을 여기에 놓으세요</h2>
-            <p>Word(.docx) · PDF · 한글(.hwpx) · 텍스트(.txt) 등 · 여러 파일 · 파일당 50MB 이하</p>
+            <p>Word(.docx) · PDF · 한글(.hwpx) · 텍스트(.txt) · 이미지 등 · 여러 파일 · 파일당 50MB 이하</p>
             <p>
-              Word(.docx)가 가장 정확합니다. PDF·한글·텍스트는 글자만 읽어 밑줄·표·그림은 가져오지 않습니다.
+              Word(.docx)가 가장 정확합니다. PDF·한글·텍스트는 글자만 읽어 밑줄·표·그림은 가져오지 않고,
+              스캔본 PDF와 이미지는 글자 인식(OCR)으로 읽어 오류가 있을 수 있습니다.
             </p>
             <Button
               variant="primary"

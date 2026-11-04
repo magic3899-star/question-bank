@@ -89,7 +89,10 @@ export function registerIpc(deps: {
     [channels.bankGet]: (value) => bank().get(value),
     [channels.bankDeleteMany]: (value) => bank().deleteMany(value),
     [channels.importPickFiles]: () => importer().pickFiles(),
-    [channels.importAnalyze]: (value) => importer().analyze(value),
+    [channels.importAnalyze]: (value) =>
+      importer().analyze(value, (progress) => {
+        if (!deps.contents.isDestroyed()) deps.contents.send(events.importProgress, progress);
+      }),
     [channels.importCommit]: (value) => importer().commit(value),
     [channels.importDiscard]: (value) => importer().discard(value),
     [channels.openPath]: (v) => deps.openPath!(need(deps.exporter, '저장 기능').isAllowedPath(v)),
