@@ -34,7 +34,8 @@ describe('업데이트 확인', () => {
     expect(seen.map((s) => s.state)).toEqual(['available', 'downloading', 'ready']);
     expect(seen[1]!.percent).toBe(42);
     updater.install();
-    expect(fake.quitAndInstall).toHaveBeenCalled();
+    // 조용히 설치하고 다시 실행해야 한다(설치 마법사를 띄우지 않는다).
+    expect(fake.quitAndInstall).toHaveBeenCalledWith(true, true);
   });
 
   it('확인 실패는 오류 상태로만 알리고 예외를 던지지 않는다', async () => {

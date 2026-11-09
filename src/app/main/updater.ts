@@ -6,7 +6,7 @@ export interface UpdaterLike {
   autoInstallOnAppQuit: boolean;
   on(event: string, listener: (...args: unknown[]) => void): unknown;
   checkForUpdates(): Promise<unknown>;
-  quitAndInstall(): void;
+  quitAndInstall(isSilent?: boolean, isForceRunAfter?: boolean): void;
 }
 
 /**
@@ -74,7 +74,9 @@ export function createUpdater(deps: {
     install(): void {
       if (status.state !== 'ready' || !updater)
         throw new Error('설치할 업데이트가 아직 준비되지 않았습니다.');
-      updater.quitAndInstall();
+      // 설치 마법사(다음·설치 단추)를 띄우지 않고 조용히 설치한 뒤 프로그램을 다시 켠다.
+      // 마법사를 띄우면 직원이 창을 닫아 버려 업데이트가 안 되는 일이 생긴다.
+      updater.quitAndInstall(true, true);
     },
   };
 }
