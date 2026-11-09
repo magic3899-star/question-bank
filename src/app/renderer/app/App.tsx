@@ -26,6 +26,9 @@ export function App() {
   const [pendingNavigation, setPendingNavigation] = useState<string>();
   const [about, setAbout] = useState(false);
   const closeToast = useCallback(() => setToast(undefined), []);
+  const refreshSettings = useCallback(async () => {
+    setSettings(await unwrap(window.qb.settings.get()));
+  }, []);
   useEffect(() => {
     const onHash = () => {
       if (isNavigationGuarded() && !document.documentElement.dataset.captureTheme) {
@@ -95,6 +98,7 @@ export function App() {
               route={page}
               query={hash.query}
               settings={settings}
+              refreshSettings={refreshSettings}
               info={info}
               update={updateTheme}
               notify={(message) => setToast({ message })}

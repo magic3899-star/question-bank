@@ -12,6 +12,7 @@ import { createAppInfoService } from './services/app-info';
 import { createBankService } from './services/bank';
 import { createEditorService } from './services/editor';
 import { createImportService } from './services/import';
+import { createEnsureSubjects } from './services/import-subjects';
 import { registerIpc } from './ipc';
 import { captureDeadline, captureRoutes, writeCaptureFailure } from './capture';
 import { autoUpdater } from 'electron-updater';
@@ -131,9 +132,12 @@ if (!app.requestSingleInstanceLock()) {
         isPackaged: app.isPackaged,
         startupError,
       });
+      const db = storage;
+      const rules = db ? createRulesService(db, settings.get) : undefined;
       const importer = storage
         ? createImportService(storage, {
             now,
+            ensureSubjects: rules ? createEnsureSubjects(settings, rules) : undefined,
             ocr: (image) => ocr.recognize(image),
             pickFiles: async () => {
               const result = await dialog.showOpenDialog(win, {
@@ -154,8 +158,6 @@ if (!app.requestSingleInstanceLock()) {
       let closing = false;
       let closePrompt = false;
       const editor = storage ? createEditorService(storage, { now }) : undefined;
-      const db = storage;
-      const rules = db ? createRulesService(db, settings.get) : undefined;
       const generate =
         db && rules ? createGenerateService(db, { now, getRules: (id) => rules.get(id) }) : undefined;
       const createPrintWindow = (): PrintWindow => {

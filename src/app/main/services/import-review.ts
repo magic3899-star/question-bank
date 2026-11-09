@@ -58,6 +58,17 @@ export function validateQuestions(questions: Question[]): Diagnostic[] {
   });
   return diagnostics;
 }
+export function diagnosticsByIndex(diagnostics: Diagnostic[]): Map<number, Diagnostic[]> {
+  const grouped = new Map<number, Diagnostic[]>();
+  for (const diagnostic of diagnostics) {
+    const index = diagnostic.ref?.draftIndex;
+    if (index === undefined) continue;
+    const group = grouped.get(index);
+    if (group) group.push(diagnostic);
+    else grouped.set(index, [diagnostic]);
+  }
+  return grouped;
+}
 export function updateCounts(review: ImportReview): void {
   review.counts = { ok: 0, warn: 0, error: 0, excluded: 0 };
   review.items.forEach((item) => review.counts[item.status]++);

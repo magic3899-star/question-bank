@@ -23,7 +23,8 @@ export function ImportSavedToast({
   return (
     <div className={styles.toast} role="status">
       <span>
-        {result.saved}개를 저장했습니다
+        {result.saved}문제를 저장했습니다.
+        {result.newSubjects?.length ? ` 새로 등록된 과목: ${result.newSubjects.join(', ')}` : ''}
         {result.notSaved.length ? ` · ${result.notSaved.length}개 저장 안 됨` : ''}
       </span>
       {undoable && result.saved > 0 && (

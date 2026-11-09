@@ -1,4 +1,6 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+﻿import { filterReviewItems, reviewPage, REVIEW_PAGE_SIZE } from './review-page';
+import { ImportReviewPagination } from './ImportReviewPagination';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import type { ImportPatch, ImportReview } from '../../../shared/index';
 import { Badge, EmptyState, Tabs } from '../../components/index';
 import { FileText } from 'lucide-react';
@@ -8,6 +10,7 @@ import styles from './ImportReviewTable.module.css';
 
 const filters = [
   { id: 'all', label: '전체' },
+  { id: 'ok', label: '정상' },
   { id: 'warn', label: '경고' },
   { id: 'error', label: '오류' },
   { id: 'excluded', label: '제외' },
@@ -41,12 +44,29 @@ export function ImportReviewTable({
   useEffect(() => {
     if (capture) expandedRow.current?.scrollIntoView({ block: 'start' });
   }, [capture, expanded]);
-  const items = review.items.filter(
-    (item) =>
-      filter === 'all' ||
-      (filter === 'duplicate'
-        ? item.diagnostics.some((d) => d.code === 'DUPLICATE_IN_BANK')
-        : item.status === filter),
+  const [requestedPage, setPage] = useState(() =>
+    Math.floor(
+      Math.max(
+        0,
+        review.items.findIndex((item) => item.index === expanded),
+      ) / REVIEW_PAGE_SIZE,
+    ),
+  );
+  const filtered = useMemo(() => filterReviewItems(review.items, filter), [review.items, filter]);
+  const result = reviewPage(filtered, requestedPage);
+  const skippedPage = reviewPage(review.skipped, requestedPage);
+  const items = result.items;
+  const changePage = (page: number) => {
+    setPage(page);
+    setSelected(0);
+    setExpanded(undefined);
+  };
+  const pagination = (
+    <ImportReviewPagination
+      {...(filter === 'skipped' ? skippedPage : result)}
+      disabled={disabled}
+      change={changePage}
+    />
   );
   return (
     <section className={styles.review} aria-label="가져오기 검수">
@@ -61,13 +81,16 @@ export function ImportReviewTable({
         onChange={(value) => {
           setFilter(value);
           setSelected(0);
+          setPage(0);
+          setExpanded(undefined);
         }}
       />
+      {pagination}
       <div className={styles.scroll}>
         {filter === 'skipped' ? (
           review.skipped.length ? (
             <ul>
-              {review.skipped.map((d, i) => (
+              {skippedPage.items.map((d, i) => (
                 <li key={i}>{d.message}</li>
               ))}
             </ul>
@@ -103,6 +126,7 @@ export function ImportReviewTable({
                     onFocus={() => setSelected(position)}
                     onClick={() => setExpanded(expanded === item.index ? undefined : item.index)}
                     onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget) return;
                       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                         event.preventDefault();
                         const next = Math.max(
@@ -175,6 +199,7 @@ export function ImportReviewTable({
           </table>
         )}
       </div>
+      {pagination}
     </section>
   );
 }

@@ -19,6 +19,8 @@ Windows 설치형(Electron), 개인 PC 단독 사용, 문제 데이터는 PC 안
 | content-model | `src/modules/content-model` | 블록 유틸(텍스트 추출, 정규화, 해시) | O |
 | rng | `src/modules/rng` | 시드 → 재현 가능 난수 | O |
 | objective-code | `src/modules/objective-code` | 학습목표 코드 파싱·구간(segment) 단위 접두 비교 (`해부 1` 이 `해부 14-1-3` 과 섞이지 않게) | O |
+| subject-catalog | `src/modules/subject-catalog` | 국가시험 21과목의 순서·접두·문항수 조회 | O |
+| workbook | `src/modules/workbook` | 추출된 문제집·정답집 줄 배열 → 과목·번호로 병합한 ImportDraft | O |
 | registry | `src/core/registry` | 플러그인 등록/조회 | O |
 | storage | `src/modules/storage` | SQLite 저장소, 마이그레이션 | 아니오(DB) |
 | importers/* | `src/modules/importers/<id>` | 파일 → ImportDraft | O |
@@ -49,7 +51,9 @@ importers/*          → contracts, content-model, layout-parser, importers/text
 ocr                  → (import 없음. 앱 계층이 주입)
 validators/*         → contracts, content-model
 objective-code       → contracts
-rules                → contracts, objective-code
+subject-catalog      → (import 없음)
+workbook             → contracts, content-model, subject-catalog, objective-code
+rules                → contracts, objective-code, subject-catalog
 constraints/*        → contracts, content-model, objective-code
 selector             → contracts, content-model, objective-code, rng   (제약은 주입받는다)
 shuffler/*           → contracts, rng, objective-code (학습목표 순 정렬)
@@ -70,6 +74,7 @@ app/renderer         → app/shared, contracts, content-model, render-html, obje
 - `exporters/*` 는 storage 를 절대 import 하지 않는다 → DB 가 바뀌어도 출력은 영향 없음.
 - UI(renderer)는 `app` 이 노출하는 IPC API 로만 로직을 호출한다.
 - 문제 해석 규칙·프로파일은 `layout-parser/index.ts`가 공개한다. 형식별 importer는 문서 고유 변환 후 이를 호출한다. `importers/docx`의 기존 프로파일 export는 호환을 위해 유지한다.
+- `workbook/index.ts`는 이미 추출한 줄 배열만 받아 문제집과 정답집을 (과목 ID, 원본 번호)로 병합한다. 번호가 불연속이면 기대 번호를 임의로 바꾸지 않는다. 정답집 접두가 동수이거나 항목의 접두가 구간 과목과 충돌하면 해당 항목을 제외하고 진단한다. PDF 읽기·저장·UI 연결은 앱 계층에서 담당한다.
 
 ## 4. 데이터 흐름
 

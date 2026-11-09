@@ -25,3 +25,7 @@
   color: var(--text-muted);
   margin-top: var(--space-1);
 }
+.hint {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}

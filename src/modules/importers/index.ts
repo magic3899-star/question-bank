@@ -10,7 +10,7 @@ export { docxImporter, standardProfile, validateProfile } from './docx/index';
 export type { LayoutProfile } from './docx/index';
 export { textImporter, parseQuestionText, parseExplanationText } from './text/index';
 export type { ImportProgress, OcrRecognize, TextOptions } from './text/index';
-export { createPdfImporter, pdfImporter } from './pdf/index';
+export { createPdfImporter, pdfImporter, extractPdfLines, PdfReadError } from './pdf/index';
 export { createImageImporter } from './image/index';
 export { officeTextImporter } from './office-text/index';
 

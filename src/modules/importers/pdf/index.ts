@@ -2,6 +2,7 @@ import type { Diagnostic, ImportDraft, Importer } from '../../../contracts/index
 import { cleanupOcrLines, parseQuestionText, reportProgress } from '../text/index';
 import type { OcrRecognize, TextOptions } from '../text/index';
 import { extractPdfLines, PdfReadError, renderPdfPages } from './extract';
+export { extractPdfLines, PdfReadError } from './extract';
 
 type PageImages = AsyncIterable<{ png: Uint8Array; page: number; pages: number }>;
 

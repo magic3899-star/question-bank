@@ -1,5 +1,6 @@
 import type { Diagnostic, RuleSet } from '../../contracts/index';
 import { matchesObjectivePrefix } from '../objective-code/index';
+export { subjectRuleSet } from './subject';
 
 export const RULESET_SCHEMA_VERSION = 1 as const;
 

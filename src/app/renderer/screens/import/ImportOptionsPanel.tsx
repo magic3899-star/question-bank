@@ -1,3 +1,5 @@
+﻿import { WORKBOOK_SUBJECT } from '../../../shared/index';
+import { visibleImportToggles } from './import-options';
 import type { ImportOptions, Settings } from '../../../shared/index';
 import { Select } from '../../components/index';
 import styles from './ImportOptionsPanel.module.css';
@@ -13,24 +15,7 @@ export function ImportOptionsPanel({
   update: (value: ImportOptions) => void;
   disabled: boolean;
 }) {
-  const toggles = [
-    { id: 'includeGrades', label: 'A 등급만', hint: 'A 등급으로 표시된 문제만 가져옵니다.' },
-    {
-      id: 'requireObjective',
-      label: '학습목표 없는 문제 제외',
-      hint: '출제 기준인 학습목표 코드가 있는 문제만 가져옵니다.',
-    },
-    {
-      id: 'dedupeByPassage',
-      label: '같은 지문은 첫 문제만',
-      hint: '선지가 달라도 본문과 예문이 같으면 첫 문제만 남깁니다.',
-    },
-    {
-      id: 'lockChoicesOnReference',
-      label: '해설에 선지 번호가 있으면 선지 고정',
-      hint: '본문·예문·해설의 번호 참조가 뒤바뀌지 않도록 고정합니다.',
-    },
-  ] as const;
+  const toggles = visibleImportToggles(options.subject);
   return (
     <fieldset className={styles.options} disabled={disabled}>
       <legend>가져오기 옵션</legend>
@@ -40,6 +25,7 @@ export function ImportOptionsPanel({
         value={options.subject}
         onChange={(e) => update({ ...options, subject: e.target.value })}
       >
+        <option value={WORKBOOK_SUBJECT}>문제집 + 정답집 (과목 자동)</option>
         <option value="">과목을 선택하세요</option>
         {subjects.map((s) => (
           <option key={s.id} value={s.id}>
@@ -47,6 +33,12 @@ export function ImportOptionsPanel({
           </option>
         ))}
       </Select>
+      {options.subject === WORKBOOK_SUBJECT && (
+        <p className={styles.hint}>
+          문제집 PDF 와 정답집 PDF 를 함께 고르세요. 과목은 PART 제목으로, 정답·해설·학습목표는 정답집에서
+          읽습니다.
+        </p>
+      )}
       {toggles.map((toggle) => (
         <label className={styles.option} key={toggle.id}>
           <input

@@ -1,6 +1,8 @@
 import type { AssetData, Diagnostic, Question } from '../../contracts/index';
 import type { QuestionSummary } from './api';
 
+export const WORKBOOK_SUBJECT = 'auto';
+
 export interface ImportOptions {
   subject: string;
   includeGrades?: string[] | null;
@@ -44,6 +46,7 @@ export interface ImportReview {
   counts: Record<ImportStatus, number>;
 }
 export interface ImportCommitResult {
+  newSubjects?: string[];
   saved: number;
   savedIds: string[];
   notSaved: { index: number; reason: string }[];

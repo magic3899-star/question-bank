@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
 import type { ImportReview } from '../../../shared/index';
+import { WORKBOOK_SUBJECT } from '../../../shared/index';
 import type { ScreenProps } from '../../lib/index';
 import { unwrap } from '../../lib/index';
 import { Button, Dialog, ErrorState, Spinner } from '../../components/index';
@@ -11,12 +12,16 @@ import { ImportSavedToast } from './ImportSavedToast';
 import { useImport } from './useImport';
 import styles from './ImportScreen.module.css';
 
-export function ImportScreen({ settings, query }: ScreenProps) {
+export function ImportScreen({ settings, query, refreshSettings }: ScreenProps) {
   const model = useImport();
   const [confirm, setConfirm] = useState(false);
   const [previewReady, setPreviewReady] = useState(false);
   const initialized = useRef(false);
   const capture = query.get('captureReview') === '1';
+  useEffect(() => {
+    if (model.saved?.result.newSubjects?.length)
+      void refreshSettings?.().catch((cause: Error) => model.setError(cause.message));
+  }, [model.saved, refreshSettings, model.setError]);
   useEffect(() => {
     if (initialized.current || !capture) return;
     initialized.current = true;
@@ -52,7 +57,7 @@ export function ImportScreen({ settings, query }: ScreenProps) {
           {model.progress && (
             <p>
               {model.progress.file}: {model.progress.label} {model.progress.done}/{model.progress.total}
-              {model.progress.total > 1 ? '쪽' : ''} (글자 인식은 쪽당 몇 초 걸립니다)
+              {model.progress.label === '글자 읽는 중' ? '파일' : '쪽'}
             </p>
           )}
           <ul>
@@ -127,7 +132,11 @@ export function ImportScreen({ settings, query }: ScreenProps) {
             }}
           >
             <Upload aria-hidden="true" />
-            <h2>문서 파일을 여기에 놓으세요</h2>
+            <h2>
+              {model.options.subject === WORKBOOK_SUBJECT
+                ? '문제집 PDF 와 정답집 PDF 를 한꺼번에 놓으세요'
+                : '문서 파일을 여기에 놓으세요'}
+            </h2>
             <p>Word(.docx) · PDF · 한글(.hwpx) · 텍스트(.txt) · 이미지 등 · 여러 파일 · 파일당 50MB 이하</p>
             <p>
               Word(.docx)가 가장 정확합니다. PDF·한글·텍스트는 글자만 읽어 밑줄·표·그림은 가져오지 않고,

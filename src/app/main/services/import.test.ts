@@ -85,6 +85,22 @@ describe('가져오기 분석·검수·저장 서비스', () => {
     expect(review.items.map((i) => i.status)).toEqual(['warn', 'excluded']);
     expect(review.items[1]!.diagnostics.some((d) => d.code === 'DUPLICATE_IN_BATCH')).toBe(true);
   });
+  it('일반 모드는 선지가 다른 같은 지문도 기존 방식으로 중복 처리한다', async () => {
+    const paths = [
+      textFile(lines(1).join('\n'), '원본.txt'),
+      textFile(lines(1).join('\n').replace('가짜 선지 0', '가짜 변형 선지'), '변형.txt'),
+    ];
+    const review = await analyze(paths);
+    expect(review.items[1].diagnostics.some((diagnostic) => diagnostic.code === 'DUPLICATE_IN_BATCH')).toBe(
+      true,
+    );
+    expect((await analyze(paths, { dedupeByPassage: false })).items[1].status).not.toBe('excluded');
+    await service.commit({ batchId: review.batchId, patches: [] });
+    const next = await analyze([paths[1]]);
+    expect(next.items[0].diagnostics.some((diagnostic) => diagnostic.code === 'DUPLICATE_IN_BANK')).toBe(
+      true,
+    );
+  });
   it('학습목표·등급·선지 고정·포함 패치를 적용하고 재검증하여 유효한 문제만 저장한다', async () => {
     const review = await analyze([textFile([...lines(1), ...lines(2), ...lines(3)].join('\n'))]);
     const result = await service.commit({

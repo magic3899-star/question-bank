@@ -7,5 +7,6 @@ export interface ScreenProps {
   info: AppInfo;
   update: (theme: Theme) => Promise<void>;
   notify: (message: string) => void;
+  refreshSettings?: () => Promise<void>;
   route: { id: string; title: string; description: string; icon: LucideIcon };
 }

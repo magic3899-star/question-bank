@@ -11,10 +11,12 @@ import {
   describeRuleSet,
   presetRuleSets,
   slotsTotalCount,
+  subjectRuleSet,
   validateRuleSet,
 } from '../../../modules/rules/index';
 import { createSelector } from '../../../modules/selector/index';
 import type { Storage } from '../../../modules/storage/index';
+import { findSubjectById } from '../../../modules/subject-catalog/index';
 import type { RuleCheck, RuleSummary, Settings, SlotCheck } from '../../shared/index';
 import { requireText } from './bank';
 
@@ -64,6 +66,22 @@ export function createRulesService(storage: Storage, settings: () => Settings) {
     );
   return {
     ensurePresets,
+    async ensureSubjectRules(ids: string[]): Promise<void> {
+      const existing = await storage.ruleSets.list();
+      const subjects = new Set(existing.map((rules) => rules.subject));
+      const presets = presetRuleSets();
+      for (const id of ids) {
+        const subject = findSubjectById(id);
+        if (!subject || subjects.has(id)) continue;
+        const rules = presets.find((preset) => preset.subject === id) ?? subjectRuleSet(subject);
+        if (existing.some((item) => item.id === rules.id))
+          throw new Error(
+            `기본 규칙 ID(${rules.id})가 다른 과목에서 사용 중입니다. 규칙 ID를 고친 뒤 다시 저장하세요.`,
+          );
+        await storage.ruleSets.save(rules);
+        subjects.add(id);
+      }
+    },
     async list(): Promise<RuleSummary[]> {
       await ensurePresets();
       return (await storage.ruleSets.list()).map((rules) => ({
